@@ -50,39 +50,57 @@ in a component; add a token if one doesn't exist yet.
 
 ## Component patterns
 
-- **Icon-only circular action buttons** (`h-7 w-7 rounded-full`, `text-muted`
-  → `hover:text-accent` or `hover:text-danger`) are the standard for
-  secondary actions on a card (pin, edit, delete). This replaced an earlier
-  text+icon button row that overflowed card bounds at narrow widths —
-  icon-only with a `title` for the tooltip is the fix, not a bigger card.
+Shared building blocks live in
+[`src/components/opal/ui/`](src/components/opal/ui/) and
+[`src/components/opal/icons.tsx`](src/components/opal/icons.tsx) — these
+came from a real duplication pass, not upfront abstraction, so **use them
+rather than re-implementing the pattern inline**; if a new screen needs
+something close-but-not-quite one of these, extend the shared component
+with a prop instead of copy-pasting it.
+
+- **`ui/IconButton.tsx`** — the icon-only circular action button (`h-7 w-7
+  rounded-full`, `text-muted` → `hover:text-accent` or `hover:text-danger`)
+  used for every secondary action on a card or list row (pin, edit, delete,
+  copy ID). This replaced an earlier text+icon button row that overflowed
+  card bounds at narrow widths — icon-only with a `title` for the tooltip
+  is the fix, not a bigger card.
 - **Pill buttons** (`rounded-full`) for every primary action — `+ New
   design`, `+ Add lectern`, submit buttons. Accent-filled for the primary
   action in a given context, bordered/transparent for secondary (e.g.
-  `Import .zip` next to `+ New design`).
+  `Import .zip` next to `+ New design`). No shared component for these yet
+  (they vary enough in width/context); still hand-write the classes to
+  match the pattern above.
 - **Dropdown menus** (`SendMenu.tsx`, `SortMenu.tsx`) share one shape: a
   trigger button, `useState` for open/closed, a `useRef` container with a
   `mousedown` document listener that closes on outside click, and an
   absolutely-positioned panel (`top-[calc(100%+6px)]`, rounded, bordered,
-  `shadow-[0_12px_32px_-8px_rgba(0,0,0,0.6)]`). Reuse this shape for any new
-  menu rather than inventing another pattern.
-- **Modals** share one shell: `fixed inset-0 bg-black/70` backdrop with
-  `onClick={onClose}`, an inner panel with `onClick={(e) =>
-  e.stopPropagation()}`, `rounded-3xl border border-border bg-surface`,
-  header row with a title and a bare `✕` close button. `DevicesModal.tsx`
-  extends this into a tabbed settings surface (Lecterns / OSC control /
-  Log) rather than spawning separate modals per concern — one entry point
-  (the gear icon) for everything that isn't preset content.
-- **Empty states** are actionable, not just a caption — "No lecterns
-  registered yet" pairs with the add form right below it in the same view;
-  the library's empty state is itself a `+` button that opens the builder.
-- **Icons are hand-drawn inline SVG**, not an icon library — every icon in
-  this app is a small local `function FooIcon()` returning raw `<svg>`.
-  Keep new icons in that style (16×16 viewBox, `currentColor`, 1.3–1.5px
-  stroke) rather than pulling in a dependency for one glyph. The lectern
-  logo mark specifically was redesigned after research into what makes a
-  lectern read as a lectern rather than a plain box: a **sloped reading
-  surface with a lip**, not a flat top — keep that detail if it's ever
-  touched again.
+  `shadow-[0_12px_32px_-8px_rgba(0,0,0,0.6)]`). Not extracted to a shared
+  component (the two menus' item content differs too much to share more
+  than the shape) — copy that structure for any new menu.
+- **`ui/Modal.tsx`** — the shared shell every modal in the app uses:
+  `fixed inset-0 bg-black/70` backdrop with `onClick={onClose}`, an inner
+  panel that stops click propagation, header row with a title and close
+  button. Takes `title` and `children`; `DevicesModal.tsx` puts its own
+  tab bar (Lecterns / OSC control / Log) inside those children rather than
+  spawning separate modals per concern — one entry point (the gear icon)
+  for everything that isn't preset content.
+- **`ui/LoadingState.tsx`** — the spinner + message for a step that takes
+  a moment (server processing, a network fetch worth narrating).
+- **`ui/EmptyState.tsx`** — the dashed-border placeholder for an empty
+  list. Empty states here are actionable where possible, not just a
+  caption — "No lecterns registered yet" pairs with the add form right
+  below it in the same view; the library's empty state is itself a `+`
+  button that opens the builder.
+- **Icons are hand-drawn inline SVG**, not an icon library — every icon
+  lives in `icons.tsx` as a small `export function FooIcon()` returning raw
+  `<svg>`. Keep new icons in that style (16×16 viewBox, `currentColor`,
+  1.3–1.5px stroke) and add them there, not as a local function in whatever
+  component happens to need them first — that's exactly how `TrashIcon` and
+  `CopyIcon` ended up duplicated before this file existed. The lectern logo
+  mark specifically was redesigned after research into what makes a lectern
+  read as a lectern rather than a plain box: a **sloped reading surface
+  with a lip**, not a flat top — keep that detail if it's ever touched
+  again.
 
 ## Layout
 

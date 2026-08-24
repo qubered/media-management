@@ -35,7 +35,10 @@ protocols, and [DESIGN.md](DESIGN.md) for the visual design system.
   page root; `MediaBuilder.tsx`/`CropEditor.tsx` are the upload+crop flow;
   `SendMenu.tsx`/`SendModal.tsx` are the send-to-lectern flow;
   `DevicesModal.tsx` is the tabbed Settings modal (Lecterns / OSC control /
-  Log).
+  Log). `icons.tsx` and `ui/` (`Modal`, `IconButton`, `LoadingState`,
+  `EmptyState`) are shared primitives — see DESIGN.md "Component patterns"
+  before adding a new icon or modal; there's almost certainly already a
+  place for it.
 
 ### Data model
 
