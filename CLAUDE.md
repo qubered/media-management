@@ -88,13 +88,24 @@ a module-level variable — see the in-memory-log gotcha below.
 
 ## Working in this repo
 
-- **There is no automated test suite** (`npm run lint` exists; there's no
-  `test` script). Instead: `npx tsc --noEmit`, `npx eslint .`, and
-  `npm run build` all need to pass clean before calling something done,
-  plus live browser verification for anything UI-facing and a real
-  end-to-end exercise (curl or a small script) for anything protocol-facing
-  — see git history for the pattern used to validate the OTA push and OSC
-  control against real hardware.
+- **There is no automated test suite** (`npm run lint`/`npm run typecheck`
+  exist; there's no `test` script). Instead: `npm run typecheck`,
+  `npm run lint`, and `npm run build` all need to pass clean before calling
+  something done, plus live browser verification for anything UI-facing and
+  a real end-to-end exercise (curl or a small script) for anything
+  protocol-facing — see git history for the pattern used to validate the
+  OTA push and OSC control against real hardware.
+- **This is enforced, not just documented.** A husky `pre-commit` hook runs
+  `eslint --fix` on staged `.ts`/`.tsx` files (`lint-staged`), a
+  `commit-msg` hook runs `commitlint` against
+  `commitlint.config.js` (conventional-commit format —
+  `type: subject`, types from `@commitlint/config-conventional`: feat, fix,
+  docs, refactor, chore, etc.), and `.github/workflows/ci.yml` runs
+  typecheck/lint/build on every push and PR to `main`. A commit that
+  doesn't follow the `type: subject` format is rejected locally before it's
+  even made; broken code that somehow gets committed anyway is caught by CI
+  before merge. Don't bypass these (`--no-verify`) without a real reason —
+  they're what keeps history honest without relying on memory.
 - For any UI change, verify it live in a browser rather than trusting the
   diff — this app has a real crop editor, real drag interactions, and real
   modals that are easy to get subtly wrong.

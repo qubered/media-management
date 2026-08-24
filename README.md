@@ -22,6 +22,12 @@ Open the printed URL from any device on the same network. Presets and media
 are stored under `./data` (override with `OPAL_DATA_DIR`) — back that
 directory up if you care about the library surviving a reinstall.
 
+`npm install` also sets up git hooks (via husky): commits are linted
+(staged files) and their messages checked against conventional-commit
+format (`type: subject`) before they're accepted, and
+[CI](.github/workflows/ci.yml) runs typecheck/lint/build on every push and
+PR. See [CLAUDE.md](CLAUDE.md) "Working in this repo" for the details.
+
 ## The flow
 
 One page, one builder:
