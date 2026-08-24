@@ -7,6 +7,10 @@ device on that network sees the same shared preset library. Media processing
 (image compositing, video transcoding) happens server-side with native
 `sharp`/`ffmpeg`, not in the browser.
 
+This README covers the file format and network protocols. See
+[CLAUDE.md](CLAUDE.md) for the codebase architecture and conventions, and
+[DESIGN.md](DESIGN.md) for the visual design system.
+
 ## Running it
 
 ```bash
