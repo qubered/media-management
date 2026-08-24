@@ -82,6 +82,11 @@ export function listPresets(): PresetSummary[] {
   return listPresetRows().map(toSummary);
 }
 
+export function getPreset(id: string): PresetSummary | null {
+  const row = getPresetRow(id);
+  return row ? toSummary(row) : null;
+}
+
 export async function createPreset(options: {
   fileBuffer: Buffer;
   fileName: string;

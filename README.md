@@ -148,3 +148,34 @@ regardless of file size on disk) causes an uncaught `OutOfMemoryError` and
 an indefinite boot loop until the file is removed over `adb`. Since every
 asset this app generates is normalized to 1080×1920 (~7.9 MiB decoded),
 that's already well inside the safe margin.
+
+## OSC control (Companion)
+
+The app listens for OSC over UDP so it can be driven from Bitfocus Companion
+(or anything else that speaks OSC) instead of the web UI — handy for
+lectern presenters who just need one button to swap the on-screen design.
+Implemented in [`src/lib/server/osc.ts`](src/lib/server/osc.ts), started
+once per server boot from [`src/instrumentation.ts`](src/instrumentation.ts).
+Like the OTA push itself, it's unauthenticated and local-network-only.
+
+- **Listen port:** UDP `9000` by default, override with `OSC_PORT`. Shown
+  live in the app under the gear icon → **OSC control**.
+- **Commands** (Companion → this app):
+  ```
+  /lectern/send <preset> <lectern>   push a design to one lectern
+  /lectern/send <preset>             push to every registered lectern
+  /lectern/ping                      replies directly with /lectern/pong
+  ```
+  `<preset>` and `<lectern>` match by name or id, case-insensitive — so a
+  Companion button can just use the same names shown in the app.
+- **Feedback** (this app → every registered target): add Companion's own IP
+  and its "Listen for OSC" port under **OSC control** in Settings, then
+  every send — whether triggered from OSC or the web UI — broadcasts:
+  ```
+  /lectern/feedback/send <lectern> <preset> <status> <message>
+    status: sending | sent | failed
+  /lectern/feedback/error <address> <detail>   unresolved preset/lectern name
+  ```
+  Use these to drive Companion button color/text feedback. Feedback targets
+  are stored the same way lecterns are (`osc_targets` table), managed from
+  the same Settings modal.

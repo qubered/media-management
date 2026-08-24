@@ -1,10 +1,66 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createDevice, deleteDevice, listDevices, updateDevice } from "@/lib/opal/apiClient";
-import { LecternDevice } from "@/lib/opal/types";
+import {
+  createDevice,
+  createOscTarget,
+  deleteDevice,
+  deleteOscTarget,
+  getOscInfo,
+  listDevices,
+  listOscTargets,
+  updateDevice,
+  updateOscTarget,
+} from "@/lib/opal/apiClient";
+import { LecternDevice, OscTarget } from "@/lib/opal/types";
+
+type Tab = "lecterns" | "osc";
 
 export default function DevicesModal({ onClose }: { onClose: () => void }) {
+  const [tab, setTab] = useState<Tab>("lecterns");
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div
+        className="flex w-full max-w-md flex-col gap-4 rounded-3xl border border-border bg-surface p-6 shadow-[0_24px_60px_-16px_rgba(0,0,0,0.6)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-xl text-foreground">Settings</h2>
+          <button onClick={onClose} className="text-muted hover:text-foreground">
+            ✕
+          </button>
+        </div>
+
+        <div className="flex gap-1 rounded-full border border-border-hairline bg-background p-1">
+          <TabButton active={tab === "lecterns"} onClick={() => setTab("lecterns")}>
+            Lecterns
+          </TabButton>
+          <TabButton active={tab === "osc"} onClick={() => setTab("osc")}>
+            OSC control
+          </TabButton>
+        </div>
+
+        {tab === "lecterns" ? <LecternsTab /> : <OscTab />}
+      </div>
+    </div>
+  );
+}
+
+function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-1 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+        active ? "bg-accent text-accent-foreground" : "text-muted hover:text-foreground"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function LecternsTab() {
   const [devices, setDevices] = useState<LecternDevice[]>([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
@@ -47,83 +103,200 @@ export default function DevicesModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
-      <div
-        className="flex w-full max-w-md flex-col gap-4 rounded-3xl border border-border bg-surface p-6 shadow-[0_24px_60px_-16px_rgba(0,0,0,0.6)]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-xl text-foreground">Lecterns</h2>
-          <button onClick={onClose} className="text-muted hover:text-foreground">
-            ✕
-          </button>
-        </div>
+    <>
+      <p className="text-sm text-muted">
+        Register each physical display so a design can be sent straight to it. Use the IP address it shows on its
+        own network settings screen.
+      </p>
 
-        <p className="text-sm text-muted">
-          Register each physical display so a design can be sent straight to it. Use the IP address it shows on its
-          own network settings screen.
+      {loading ? (
+        <p className="text-sm text-muted">Loading…</p>
+      ) : devices.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-sm text-muted">
+          No lecterns registered yet.
         </p>
-
-        {loading ? (
-          <p className="text-sm text-muted">Loading…</p>
-        ) : devices.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-sm text-muted">
-            No lecterns registered yet.
-          </p>
-        ) : (
-          <ul className="flex max-h-64 flex-col gap-2 overflow-y-auto">
-            {devices.map((device) => (
-              <DeviceRow key={device.id} device={device} onRename={handleRename} onDelete={handleDelete} />
-            ))}
-          </ul>
-        )}
-
-        <form onSubmit={handleAdd} className="flex flex-col gap-2 border-t border-border-hairline pt-4">
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Name (e.g. Foyer lectern)"
-              className="min-w-0 flex-1 rounded-full border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+      ) : (
+        <ul className="flex max-h-64 flex-col gap-2 overflow-y-auto">
+          {devices.map((device) => (
+            <NamedHostRow
+              key={device.id}
+              name={device.name}
+              subtitle={device.host}
+              onRename={(newName) => handleRename(device, newName)}
+              onDelete={() => handleDelete(device)}
             />
-            <input
-              value={host}
-              onChange={(e) => setHost(e.target.value)}
-              placeholder="IP address or hostname"
-              className="min-w-0 flex-1 rounded-full border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
-            />
-          </div>
-          {error && <p className="text-xs text-danger">{error}</p>}
-          <button
-            type="submit"
-            disabled={adding || !name.trim() || !host.trim()}
-            className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-colors hover:bg-accent-hover disabled:opacity-50"
-          >
-            {adding ? "Adding…" : "+ Add lectern"}
-          </button>
-        </form>
-      </div>
-    </div>
+          ))}
+        </ul>
+      )}
+
+      <form onSubmit={handleAdd} className="flex flex-col gap-2 border-t border-border-hairline pt-4">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Name (e.g. Foyer lectern)"
+            className="min-w-0 flex-1 rounded-full border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+          />
+          <input
+            value={host}
+            onChange={(e) => setHost(e.target.value)}
+            placeholder="IP address or hostname"
+            className="min-w-0 flex-1 rounded-full border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+          />
+        </div>
+        {error && <p className="text-xs text-danger">{error}</p>}
+        <button
+          type="submit"
+          disabled={adding || !name.trim() || !host.trim()}
+          className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-colors hover:bg-accent-hover disabled:opacity-50"
+        >
+          {adding ? "Adding…" : "+ Add lectern"}
+        </button>
+      </form>
+    </>
   );
 }
 
-function DeviceRow({
-  device,
+function OscTab() {
+  const [targets, setTargets] = useState<OscTarget[]>([]);
+  const [listenPort, setListenPort] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState("");
+  const [host, setHost] = useState("");
+  const [port, setPort] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    Promise.all([listOscTargets(), getOscInfo()])
+      .then(([oscTargets, info]) => {
+        setTargets(oscTargets);
+        setListenPort(info.listenPort);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const portNumber = Number(port);
+    if (!name.trim() || !host.trim() || !Number.isInteger(portNumber) || portNumber < 1 || portNumber > 65535) return;
+    setAdding(true);
+    setError("");
+    try {
+      const target = await createOscTarget(name.trim(), host.trim(), portNumber);
+      setTargets((prev) => [...prev, target]);
+      setName("");
+      setHost("");
+      setPort("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add target");
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleDelete = async (target: OscTarget) => {
+    if (!confirm(`Remove "${target.name}"?`)) return;
+    setTargets((prev) => prev.filter((t) => t.id !== target.id));
+    await deleteOscTarget(target.id);
+  };
+
+  const handleRename = async (target: OscTarget, newName: string) => {
+    setTargets((prev) => prev.map((t) => (t.id === target.id ? { ...t, name: newName } : t)));
+    await updateOscTarget(target.id, { name: newName });
+  };
+
+  return (
+    <>
+      <p className="text-sm text-muted">
+        Control this app from Bitfocus Companion (or anything else that speaks OSC) over the venue network.
+      </p>
+
+      <div className="rounded-xl border border-border-hairline bg-background px-3 py-2.5 text-xs text-foreground-secondary">
+        <p className="mb-1.5 font-semibold text-foreground">Send commands to this app on UDP {listenPort ?? "…"}</p>
+        <code className="block text-muted">/lectern/send &lt;preset&gt; &lt;lectern&gt;</code>
+        <code className="block text-muted">/lectern/send &lt;preset&gt; — sends to every lectern</code>
+        <code className="block text-muted">/lectern/ping — replies with /lectern/pong</code>
+        <p className="mb-1.5 mt-3 font-semibold text-foreground">Feedback broadcast to every target below</p>
+        <code className="block text-muted">/lectern/feedback/send &lt;lectern&gt; &lt;preset&gt; &lt;status&gt; &lt;message&gt;</code>
+        <code className="block text-muted">/lectern/feedback/error &lt;address&gt; &lt;detail&gt;</code>
+        <p className="mt-1.5 text-muted">preset/lectern arguments match by name or id, case-insensitive.</p>
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-muted">Loading…</p>
+      ) : targets.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-sm text-muted">
+          No feedback targets yet — add Companion&apos;s own IP and its &quot;Listen for OSC&quot; port.
+        </p>
+      ) : (
+        <ul className="flex max-h-48 flex-col gap-2 overflow-y-auto">
+          {targets.map((target) => (
+            <NamedHostRow
+              key={target.id}
+              name={target.name}
+              subtitle={`${target.host}:${target.port}`}
+              onRename={(newName) => handleRename(target, newName)}
+              onDelete={() => handleDelete(target)}
+            />
+          ))}
+        </ul>
+      )}
+
+      <form onSubmit={handleAdd} className="flex flex-col gap-2 border-t border-border-hairline pt-4">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Name (e.g. Companion)"
+            className="min-w-0 flex-1 rounded-full border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+          />
+          <input
+            value={host}
+            onChange={(e) => setHost(e.target.value)}
+            placeholder="IP address"
+            className="min-w-0 flex-1 rounded-full border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+          />
+          <input
+            value={port}
+            onChange={(e) => setPort(e.target.value)}
+            placeholder="Port"
+            inputMode="numeric"
+            className="w-full min-w-0 rounded-full border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent sm:w-20"
+          />
+        </div>
+        {error && <p className="text-xs text-danger">{error}</p>}
+        <button
+          type="submit"
+          disabled={adding || !name.trim() || !host.trim() || !port.trim()}
+          className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-colors hover:bg-accent-hover disabled:opacity-50"
+        >
+          {adding ? "Adding…" : "+ Add feedback target"}
+        </button>
+      </form>
+    </>
+  );
+}
+
+function NamedHostRow({
+  name,
+  subtitle,
   onRename,
   onDelete,
 }: {
-  device: LecternDevice;
-  onRename: (device: LecternDevice, name: string) => void;
-  onDelete: (device: LecternDevice) => void;
+  name: string;
+  subtitle: string;
+  onRename: (name: string) => void;
+  onDelete: () => void;
 }) {
   const [renaming, setRenaming] = useState(false);
-  const [name, setName] = useState(device.name);
+  const [value, setValue] = useState(name);
 
   const commit = () => {
     setRenaming(false);
-    const trimmed = name.trim();
-    if (trimmed && trimmed !== device.name) onRename(device, trimmed);
-    else setName(device.name);
+    const trimmed = value.trim();
+    if (trimmed && trimmed !== name) onRename(trimmed);
+    else setValue(name);
   };
 
   return (
@@ -132,13 +305,13 @@ function DeviceRow({
         {renaming ? (
           <input
             autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
             onBlur={commit}
             onKeyDown={(e) => {
               if (e.key === "Enter") commit();
               if (e.key === "Escape") {
-                setName(device.name);
+                setValue(name);
                 setRenaming(false);
               }
             }}
@@ -150,13 +323,13 @@ function DeviceRow({
             className="truncate text-left text-sm font-medium hover:text-accent"
             title="Rename"
           >
-            {device.name}
+            {name}
           </button>
         )}
-        <span className="truncate text-xs text-muted">{device.host}</span>
+        <span className="truncate text-xs text-muted">{subtitle}</span>
       </div>
       <button
-        onClick={() => onDelete(device)}
+        onClick={onDelete}
         className="shrink-0 rounded-full p-1.5 text-muted hover:bg-surface-hover hover:text-danger"
         title="Remove"
         aria-label="Remove"

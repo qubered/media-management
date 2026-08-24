@@ -1,4 +1,4 @@
-import { CropRect, LecternDevice, PresetSummary, SendResult } from "./types";
+import { CropRect, LecternDevice, OscTarget, PresetSummary, SendResult } from "./types";
 
 async function unwrap<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -110,4 +110,42 @@ export async function sendPresetToDevices(presetId: string, deviceIds: string[])
   });
   const body = await unwrap<{ results: SendResult[] }>(res);
   return body.results;
+}
+
+export async function listOscTargets(): Promise<OscTarget[]> {
+  const res = await fetch("/api/osc-targets", { cache: "no-store" });
+  return unwrap(res);
+}
+
+export async function createOscTarget(name: string, host: string, port: number): Promise<OscTarget> {
+  const res = await fetch("/api/osc-targets", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, host, port }),
+  });
+  return unwrap(res);
+}
+
+export async function updateOscTarget(
+  id: string,
+  updates: { name?: string; host?: string; port?: number },
+): Promise<OscTarget> {
+  const res = await fetch(`/api/osc-targets/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+  return unwrap(res);
+}
+
+export async function deleteOscTarget(id: string): Promise<void> {
+  const res = await fetch(`/api/osc-targets/${id}`, { method: "DELETE" });
+  if (!res.ok && res.status !== 404) {
+    throw new Error(`Failed to delete OSC target (${res.status})`);
+  }
+}
+
+export async function getOscInfo(): Promise<{ listenPort: number }> {
+  const res = await fetch("/api/osc/info", { cache: "no-store" });
+  return unwrap(res);
 }

@@ -30,6 +30,16 @@ db.exec(`
   )
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS osc_targets (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    host TEXT NOT NULL,
+    port INTEGER NOT NULL,
+    created_at INTEGER NOT NULL
+  )
+`);
+
 /** Lightweight migrations — ALTER TABLE ADD COLUMN throws if the column already exists, which we just ignore. */
 function migrate(sql: string) {
   try {
@@ -181,4 +191,42 @@ export function updateDeviceRow(id: string, updates: { name?: string; host?: str
 
 export function deleteDeviceRow(id: string): void {
   db.prepare("DELETE FROM devices WHERE id = ?").run(id);
+}
+
+export interface OscTargetRow {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  created_at: number;
+}
+
+export function listOscTargetRows(): OscTargetRow[] {
+  return db.prepare("SELECT * FROM osc_targets ORDER BY created_at ASC").all() as OscTargetRow[];
+}
+
+export function getOscTargetRow(id: string): OscTargetRow | undefined {
+  return db.prepare("SELECT * FROM osc_targets WHERE id = ?").get(id) as OscTargetRow | undefined;
+}
+
+export function insertOscTargetRow(row: OscTargetRow): void {
+  db.prepare("INSERT INTO osc_targets (id, name, host, port, created_at) VALUES (@id, @name, @host, @port, @created_at)").run(
+    row,
+  );
+}
+
+export function updateOscTargetRow(id: string, updates: { name?: string; host?: string; port?: number }): void {
+  if (updates.name !== undefined) {
+    db.prepare("UPDATE osc_targets SET name = ? WHERE id = ?").run(updates.name, id);
+  }
+  if (updates.host !== undefined) {
+    db.prepare("UPDATE osc_targets SET host = ? WHERE id = ?").run(updates.host, id);
+  }
+  if (updates.port !== undefined) {
+    db.prepare("UPDATE osc_targets SET port = ? WHERE id = ?").run(updates.port, id);
+  }
+}
+
+export function deleteOscTargetRow(id: string): void {
+  db.prepare("DELETE FROM osc_targets WHERE id = ?").run(id);
 }

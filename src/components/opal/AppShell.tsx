@@ -20,8 +20,8 @@ export default function AppShell() {
 
           <button
             onClick={() => setDevicesOpen(true)}
-            title="Lecterns"
-            aria-label="Lecterns"
+            title="Settings"
+            aria-label="Settings"
             className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
           >
             <GearIcon />

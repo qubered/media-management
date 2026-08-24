@@ -72,3 +72,12 @@ export interface SendResult {
   ok: boolean;
   message: string;
 }
+
+/** Where this app sends OSC feedback — typically Companion's own "Listen for OSC" port. */
+export interface OscTarget {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  createdAt: number;
+}
