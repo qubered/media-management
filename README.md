@@ -39,8 +39,24 @@ One page, one builder:
 Saved presets can be **renamed**, **deleted**, or **edited** — editing
 reopens the crop editor against the *original* upload (kept server-side
 specifically for this), so re-cropping never loses quality or content from
-an earlier crop. The library has a search box once there are enough presets
-to want one.
+an earlier crop. The library has a search box, sort menu (name/date), and
+pinning once there are enough presets to want them.
+
+### Sending a design to a screen
+
+1. Click the gear icon → **Lecterns** tab → register a screen with a name
+   and its IP address (shown on the screen's own network settings page).
+2. On any preset card, click the paper-airplane menu — it has **Download
+   .zip**, **Push to lectern**, and **Copy ID** (for Companion, see below).
+3. **Push to lectern** opens a picker with every registered screen and a
+   **Send to all** shortcut; each row shows live status (Sending… → Sent ✓
+   or Retry on failure) using the real OTA protocol below.
+
+The same push path — build the zip once, send to N devices, report
+per-device results — is shared between this UI flow and the OSC command
+below (`pushPresetToDevices` in
+[`src/lib/server/pushPreset.ts`](src/lib/server/pushPreset.ts)), so status
+is consistent no matter what triggered the send.
 
 ## What happens on upload
 
@@ -65,15 +81,20 @@ separate small JPEG for the library grid's own preview card.
 ## Architecture
 
 - `src/lib/server/` — everything server-only: SQLite (`better-sqlite3`) for
-  preset metadata, content-addressed media storage on disk, `sharp`/`ffmpeg`
-  processing, zip assembly.
-- `src/app/api/presets/` — the REST surface (`GET`/`POST /api/presets`,
-  `PATCH`/`DELETE /api/presets/:id`, `GET /api/presets/:id/download`,
-  `GET /api/presets/:id/source`, `POST /api/presets/:id/recrop`).
-- `src/lib/opal/` — small isomorphic pieces shared by client and server
-  (types, the config.xml templater, color conversion).
+  all persisted metadata, content-addressed media storage on disk,
+  `sharp`/`ffmpeg` processing, zip assembly, the OTA and OSC protocol
+  implementations.
+- `src/app/api/` — the REST/route surface, see the full table below.
+- `src/lib/opal/` — small isomorphic pieces shared by client and server:
+  `types.ts` (every shared interface), `xml.ts` (config.xml templater),
+  `color.ts` (ARGB/RGB conversion), `apiClient.ts` (every fetch call the UI
+  makes).
 - `src/components/opal/` — the UI: a single library page, the crop editor,
-  the new-design builder modal, the edit modal.
+  the new-design builder modal, the edit modal, the tabbed Settings modal
+  (Lecterns / OSC control / Log).
+
+See [CLAUDE.md](CLAUDE.md) for the fuller architecture map, including which
+file owns which concept.
 
 Media is content-addressed (`<sha1>.<ext>`) and deduplicated — both the
 *processed* output and the *original* upload are stored this way, so
@@ -82,6 +103,42 @@ identical uploads or identical crops never take extra disk space.
 One-off "quick build" presets and abandoned in-progress edits are stored as
 ephemeral rows (hidden from the library) and swept after 24 hours so they
 don't accumulate.
+
+### API reference
+
+All routes are under `src/app/api/`, JSON in/out unless noted.
+
+| Route | Methods | Notes |
+|---|---|---|
+| `/api/presets` | `GET`, `POST` | List / create (multipart upload) |
+| `/api/presets/:id` | `PATCH`, `DELETE` | Rename/pin/ephemeral toggle; delete |
+| `/api/presets/:id/download` | `GET` | Streams the built `config.zip` |
+| `/api/presets/:id/source` | `GET` | Streams the original, unprocessed upload |
+| `/api/presets/:id/recrop` | `POST` | Re-crop from the original source |
+| `/api/presets/:id/send` | `POST` | `{ deviceIds: string[] }` → push over OTA |
+| `/api/presets/import` | `POST` | Multipart `config.zip` upload → new preset |
+| `/api/devices` | `GET`, `POST` | List / register a lectern |
+| `/api/devices/:id` | `PATCH`, `DELETE` | Rename/re-address; remove |
+| `/api/osc-targets` | `GET`, `POST` | List / register an OSC feedback target |
+| `/api/osc-targets/:id` | `PATCH`, `DELETE` | Rename/re-address; remove |
+| `/api/osc/info` | `GET` | `{ listenPort: number }` |
+| `/api/osc/log` | `GET`, `DELETE` | Read / clear the OSC activity log |
+
+Every route has a matching function in
+[`src/lib/opal/apiClient.ts`](src/lib/opal/apiClient.ts) — that file is the
+source of truth for exact request/response shapes.
+
+## Configuration
+
+Environment variables, all optional:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `OPAL_DATA_DIR` | `./data` | Where the SQLite DB and media store live |
+| `OSC_PORT` | `9000` | UDP port the OSC listener binds |
+
+No `.env` file is required to run the app — both have sane defaults for a
+single-machine venue deployment.
 
 ## How the format was reverse-engineered
 

@@ -17,26 +17,50 @@ protocols, and [DESIGN.md](DESIGN.md) for the visual design system.
   the UI calls — every server capability has a matching function here).
 - `src/lib/server/` — server-only. `db.ts` is the single `better-sqlite3`
   connection and all table schemas/migrations; `presets.ts`, `devices.ts`,
-  `oscTargets.ts` are thin service layers over it. `processImage.ts` /
-  `processVideo.ts` do the sharp/ffmpeg normalization to 1080×1920.
-  `send.ts` speaks the real OTA TCP protocol; `osc.ts` + `oscFeedback.ts`
-  + `oscLog.ts` are the OSC control surface; `pushPreset.ts` is the shared
-  send path both the HTTP route and OSC command call into.
+  `oscTargets.ts` are thin service layers over it. `paths.ts` resolves
+  `DATA_DIR`/`MEDIA_DIR`/`DB_PATH` from `OPAL_DATA_DIR`; `mediaStore.ts` and
+  `hash.ts` are the content-addressed disk store; `thumbnail.ts` builds the
+  device's custom `<graphics bitmap>` format plus the library preview JPEG.
+  `processImage.ts` / `processVideo.ts` do the sharp/ffmpeg normalization to
+  1080×1920. `send.ts` speaks the real OTA TCP protocol; `osc.ts` +
+  `oscFeedback.ts` + `oscLog.ts` are the OSC control surface;
+  `pushPreset.ts` is the shared send path both the HTTP route and OSC
+  command call into. `importConfigZip.ts` is the reverse direction — parses
+  an uploaded config.zip (this app's own or the vendor's) back into a
+  preset.
 - `src/app/api/` — route handlers, kept thin: parse/validate the request,
   call into `src/lib/server/`, return JSON. Business logic doesn't belong
-  here.
+  here. See README "API reference" for the full route table.
 - `src/components/opal/` — client components. `PresetLibrary.tsx` is the
   page root; `MediaBuilder.tsx`/`CropEditor.tsx` are the upload+crop flow;
+  `SendMenu.tsx`/`SendModal.tsx` are the send-to-lectern flow;
   `DevicesModal.tsx` is the tabbed Settings modal (Lecterns / OSC control /
   Log).
+
+### Data model
+
+Everything lives in one SQLite file (`OPAL_DATA_DIR/presets.db`, default
+`./data/presets.db`) with four tables, all defined in `db.ts`:
+
+- **`presets`** — the library. Media/source are referenced by hash, not
+  stored inline; `ephemeral` rows are quick-builds hidden from the UI and
+  swept after 24h; `pinned`/`crop_*`/`background_color` drive the UI you'd
+  expect.
+- **`devices`** — registered lecterns (name + host), the OTA send targets.
+- **`osc_targets`** — where OSC feedback gets broadcast (name + host +
+  port), independent of `devices`.
+- **`osc_log`** — rolling window (last 200) of every inbound OSC message.
+
+New persisted state should be a new table here, not a new file on disk or
+a module-level variable — see the in-memory-log gotcha below.
 
 ## Conventions worth knowing before changing things
 
 - **Media is always normalized** to 1080×1920, PNG for images / MP4 for
   video, regardless of source. Don't add a code path that skips this — the
-  player has a 64 MiB decode heap with no bounds checking (see README §5),
-  so an unnormalized asset is a real crash risk on the physical device, not
-  just a cosmetic issue.
+  player has a 64 MiB decode heap with no bounds checking (see README "OTA
+  push protocol" → known player constraint), so an unnormalized asset is a
+  real crash risk on the physical device, not just a cosmetic issue.
 - **SQLite is the single source of truth** for presets, devices, OSC
   targets, and the OSC log — `/data` is gitignored, not committed. Don't add
   module-level in-memory state for anything that needs to be read back from
@@ -61,8 +85,13 @@ protocols, and [DESIGN.md](DESIGN.md) for the visual design system.
 
 ## Working in this repo
 
-- Typecheck, lint, and build all need to pass clean before calling
-  something done: `npx tsc --noEmit`, `npx eslint .`, `npm run build`.
+- **There is no automated test suite** (`npm run lint` exists; there's no
+  `test` script). Instead: `npx tsc --noEmit`, `npx eslint .`, and
+  `npm run build` all need to pass clean before calling something done,
+  plus live browser verification for anything UI-facing and a real
+  end-to-end exercise (curl or a small script) for anything protocol-facing
+  — see git history for the pattern used to validate the OTA push and OSC
+  control against real hardware.
 - For any UI change, verify it live in a browser rather than trusting the
   diff — this app has a real crop editor, real drag interactions, and real
   modals that are easy to get subtly wrong.
