@@ -1,4 +1,4 @@
-import { CropRect, LecternDevice, OscTarget, PresetSummary, SendResult } from "./types";
+import { CropRect, LecternDevice, OscLogEntry, OscTarget, PresetSummary, SendResult } from "./types";
 
 async function unwrap<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -148,4 +148,13 @@ export async function deleteOscTarget(id: string): Promise<void> {
 export async function getOscInfo(): Promise<{ listenPort: number }> {
   const res = await fetch("/api/osc/info", { cache: "no-store" });
   return unwrap(res);
+}
+
+export async function getOscLog(): Promise<OscLogEntry[]> {
+  const res = await fetch("/api/osc/log", { cache: "no-store" });
+  return unwrap(res);
+}
+
+export async function clearOscLog(): Promise<void> {
+  await fetch("/api/osc/log", { method: "DELETE" });
 }

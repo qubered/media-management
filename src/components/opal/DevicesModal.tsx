@@ -2,19 +2,21 @@
 
 import { useEffect, useState } from "react";
 import {
+  clearOscLog,
   createDevice,
   createOscTarget,
   deleteDevice,
   deleteOscTarget,
   getOscInfo,
+  getOscLog,
   listDevices,
   listOscTargets,
   updateDevice,
   updateOscTarget,
 } from "@/lib/opal/apiClient";
-import { LecternDevice, OscTarget } from "@/lib/opal/types";
+import { LecternDevice, OscLogEntry, OscTarget } from "@/lib/opal/types";
 
-type Tab = "lecterns" | "osc";
+type Tab = "lecterns" | "osc" | "log";
 
 export default function DevicesModal({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<Tab>("lecterns");
@@ -39,9 +41,12 @@ export default function DevicesModal({ onClose }: { onClose: () => void }) {
           <TabButton active={tab === "osc"} onClick={() => setTab("osc")}>
             OSC control
           </TabButton>
+          <TabButton active={tab === "log"} onClick={() => setTab("log")}>
+            Log
+          </TabButton>
         </div>
 
-        {tab === "lecterns" ? <LecternsTab /> : <OscTab />}
+        {tab === "lecterns" ? <LecternsTab /> : tab === "osc" ? <OscTab /> : <LogTab />}
       </div>
     </div>
   );
@@ -274,6 +279,65 @@ function OscTab() {
           {adding ? "Adding…" : "+ Add feedback target"}
         </button>
       </form>
+    </>
+  );
+}
+
+function LogTab() {
+  const [entries, setEntries] = useState<OscLogEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const refresh = () => getOscLog().then(setEntries).finally(() => setLoading(false));
+    refresh();
+    const interval = setInterval(refresh, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleClear = async () => {
+    await clearOscLog();
+    setEntries([]);
+  };
+
+  return (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm text-muted">Every incoming OSC command, valid or not — newest first.</p>
+        {entries.length > 0 && (
+          <button onClick={handleClear} className="shrink-0 text-xs text-muted hover:text-danger">
+            Clear
+          </button>
+        )}
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-muted">Loading…</p>
+      ) : entries.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-sm text-muted">
+          Nothing received yet. Send <code className="text-foreground-secondary">/lectern/ping</code> from Companion
+          to test the connection.
+        </p>
+      ) : (
+        <ul className="flex max-h-96 flex-col gap-2 overflow-y-auto">
+          {entries.map((entry) => (
+            <li key={entry.id} className="rounded-xl border border-border-hairline bg-background px-3 py-2 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <code className="truncate text-foreground">
+                  {entry.address}
+                  {entry.args.length > 0 && <span className="text-muted"> {entry.args.join(" ")}</span>}
+                </code>
+                <span className={`shrink-0 font-semibold ${entry.ok ? "text-accent" : "text-danger"}`}>
+                  {entry.ok ? "OK" : "ERR"}
+                </span>
+              </div>
+              <p className="mt-0.5 truncate text-muted">{entry.detail}</p>
+              <p className="mt-0.5 text-[10px] text-muted">
+                {new Date(entry.timestamp).toLocaleTimeString()} · from {entry.from}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
     </>
   );
 }

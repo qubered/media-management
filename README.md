@@ -179,3 +179,10 @@ Like the OTA push itself, it's unauthenticated and local-network-only.
   Use these to drive Companion button color/text feedback. Feedback targets
   are stored the same way lecterns are (`osc_targets` table), managed from
   the same Settings modal.
+- **Log:** Settings → **Log** shows every incoming OSC message — valid or
+  not — with its source, arguments, and outcome, polling every 2s. Backed by
+  SQLite rather than an in-memory array (see the note in `oscLog.ts` — the
+  instrumentation-hosted OSC server and the API routes don't reliably share
+  a module instance under Turbopack's dev bundler); keeps the last 200,
+  useful for confirming Companion is actually reaching the app and sending
+  what you expect before chasing anything further downstream.

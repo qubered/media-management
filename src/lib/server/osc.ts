@@ -1,6 +1,7 @@
 import { Server } from "node-osc";
 import { listDevices } from "./devices";
 import { broadcastOscFeedback, replyOsc } from "./oscFeedback";
+import { pushOscLog } from "./oscLog";
 import { listPresets } from "./presets";
 import { pushPresetToDevices } from "./pushPreset";
 
@@ -45,9 +46,12 @@ export function startOscServer(): void {
 
   server.on("message", (msg, rinfo) => {
     const [address, ...args] = msg;
+    const from = `${rinfo.address}:${rinfo.port}`;
+    const argStrings = args.map((a: unknown) => String(a));
 
     if (address === "/lectern/ping") {
       replyOsc(rinfo.address, rinfo.port, "/lectern/pong", ["ok"]);
+      pushOscLog({ from, address, args: argStrings, ok: true, detail: "replied /lectern/pong" });
       return;
     }
 
@@ -57,17 +61,28 @@ export function startOscServer(): void {
 
       const preset = resolvePreset(presetArg);
       if (!preset) {
-        broadcastOscFeedback("/lectern/feedback/error", [address, `unknown preset: ${presetArg}`]);
+        const detail = `unknown preset: "${presetArg}"`;
+        broadcastOscFeedback("/lectern/feedback/error", [address, detail]);
+        pushOscLog({ from, address, args: argStrings, ok: false, detail });
         return;
       }
 
       const deviceIds = resolveDeviceIds(deviceArg);
       if (deviceIds.length === 0) {
-        broadcastOscFeedback("/lectern/feedback/error", [address, `unknown device: ${deviceArg || "(none registered)"}`]);
+        const detail = `unknown lectern: "${deviceArg || "(none registered)"}"`;
+        broadcastOscFeedback("/lectern/feedback/error", [address, detail]);
+        pushOscLog({ from, address, args: argStrings, ok: false, detail });
         return;
       }
 
+      const detail = `pushing "${preset.name}" to ${deviceIds.length} lectern${deviceIds.length === 1 ? "" : "s"}`;
+      pushOscLog({ from, address, args: argStrings, ok: true, detail });
       void pushPresetToDevices(preset.id, deviceIds);
+      return;
     }
+
+    const detail = "unrecognized address";
+    broadcastOscFeedback("/lectern/feedback/error", [address, detail]);
+    pushOscLog({ from, address, args: argStrings, ok: false, detail });
   });
 }

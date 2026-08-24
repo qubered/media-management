@@ -40,6 +40,18 @@ db.exec(`
   )
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS osc_log (
+    id TEXT PRIMARY KEY,
+    timestamp INTEGER NOT NULL,
+    from_addr TEXT NOT NULL,
+    address TEXT NOT NULL,
+    args TEXT NOT NULL,
+    ok INTEGER NOT NULL,
+    detail TEXT NOT NULL
+  )
+`);
+
 /** Lightweight migrations — ALTER TABLE ADD COLUMN throws if the column already exists, which we just ignore. */
 function migrate(sql: string) {
   try {
@@ -229,4 +241,34 @@ export function updateOscTargetRow(id: string, updates: { name?: string; host?: 
 
 export function deleteOscTargetRow(id: string): void {
   db.prepare("DELETE FROM osc_targets WHERE id = ?").run(id);
+}
+
+export interface OscLogRow {
+  id: string;
+  timestamp: number;
+  from_addr: string;
+  address: string;
+  args: string;
+  ok: number;
+  detail: string;
+}
+
+const OSC_LOG_MAX_ROWS = 200;
+
+/** Inserts a log row and trims the table back down to the most recent OSC_LOG_MAX_ROWS entries. */
+export function insertOscLogRow(row: OscLogRow): void {
+  db.prepare(
+    "INSERT INTO osc_log (id, timestamp, from_addr, address, args, ok, detail) VALUES (@id, @timestamp, @from_addr, @address, @args, @ok, @detail)",
+  ).run(row);
+  db.prepare(
+    `DELETE FROM osc_log WHERE id NOT IN (SELECT id FROM osc_log ORDER BY timestamp DESC LIMIT ${OSC_LOG_MAX_ROWS})`,
+  ).run();
+}
+
+export function listOscLogRows(): OscLogRow[] {
+  return db.prepare(`SELECT * FROM osc_log ORDER BY timestamp DESC LIMIT ${OSC_LOG_MAX_ROWS}`).all() as OscLogRow[];
+}
+
+export function clearOscLogRows(): void {
+  db.exec("DELETE FROM osc_log");
 }

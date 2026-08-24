@@ -81,3 +81,14 @@ export interface OscTarget {
   port: number;
   createdAt: number;
 }
+
+/** One incoming OSC message, valid or not — for the live activity log. */
+export interface OscLogEntry {
+  id: string;
+  timestamp: number;
+  from: string;
+  address: string;
+  args: string[];
+  ok: boolean;
+  detail: string;
+}
