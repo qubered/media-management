@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { downloadUrl } from "@/lib/opal/apiClient";
 import { PresetSummary } from "@/lib/opal/types";
+import SendMenu from "./SendMenu";
 
 export default function PresetCard({
   preset,
@@ -72,14 +72,6 @@ export default function PresetCard({
         )}
       </div>
 
-      <button
-        onClick={() => onSend(preset)}
-        className="flex items-center justify-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-accent-foreground transition-colors hover:bg-accent-hover"
-      >
-        <SendIcon />
-        Send to lectern
-      </button>
-
       <div className="flex items-center justify-between gap-0.5 px-0.5 pb-0.5">
         <IconButton
           title={preset.pinned ? "Unpin" : "Pin to top"}
@@ -89,9 +81,7 @@ export default function PresetCard({
           <PinIcon filled={preset.pinned} />
         </IconButton>
         <div className="flex gap-0.5">
-          <IconLink href={downloadUrl(preset.id)} title="Download config.zip">
-            <DownloadIcon />
-          </IconLink>
+          <SendMenu preset={preset} onSend={onSend} />
           {preset.editable && (
             <IconButton title="Edit" onClick={() => onEdit(preset)}>
               <PencilIcon />
@@ -129,28 +119,6 @@ function IconButton({
   );
 }
 
-function IconLink({ href, title, children }: { href: string; title: string; children: React.ReactNode }) {
-  return (
-    <a
-      href={href}
-      title={title}
-      aria-label={title}
-      className="flex h-7 w-7 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-accent active:scale-90"
-    >
-      {children}
-    </a>
-  );
-}
-
-function DownloadIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-      <path d="M8 1.5v8.2M4.8 6.8 8 10l3.2-3.2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M2 12v1.2c0 .7.6 1.3 1.3 1.3h9.4c.7 0 1.3-.6 1.3-1.3V12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function PencilIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -175,21 +143,6 @@ function PinIcon({ filled = false }: { filled?: boolean }) {
         strokeLinejoin="round"
       />
       <path d="M8 9v5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function SendIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-      <path
-        d="M2 8 13.5 2.5 9.5 13 7.5 9 2 8Z"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-      <path d="M7.5 9 13.5 2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
     </svg>
   );
 }

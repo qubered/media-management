@@ -124,8 +124,7 @@ export default function PresetLibrary() {
               )}
             </div>
             <p className="text-sm text-muted">
-              Shared across every device on this network. Save a design once, grab a fresh{" "}
-              <code className="text-foreground-secondary">config.zip</code> any time.
+              Save a design once, grab a fresh <code className="text-foreground-secondary">config.zip</code> any time.
             </p>
           </div>
 
