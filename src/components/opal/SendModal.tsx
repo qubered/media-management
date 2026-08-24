@@ -78,8 +78,7 @@ export default function SendModal({ preset, onClose }: { preset: PresetSummary; 
         )}
 
         <p className="text-xs text-muted">
-          Sending is simulated for now — the real network push will be wired up once the device&apos;s OTA protocol
-          is captured (see the README).
+          Sends directly over the venue network on port 16179 — the screen must be powered on and reachable.
         </p>
       </div>
     </div>

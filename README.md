@@ -107,24 +107,44 @@ structural differences (only fields that legitimately differ per-deployment
 ## Current scope
 
 - One full-screen media item per config, always normalized to 1080x1920.
-- USB export only. OTA delivery isn't implemented.
+- Download the `config.zip` directly, or push it straight to a registered
+  screen over the network (see below). No USB step required either way.
 
-## Adding OTA delivery (needs a packet capture)
+## OTA push protocol
 
-The OTA push is local and unauthenticated — the vendor's software pushes
-directly to the screen over the LAN, no cloud, no login. That's good news,
-but there's currently no sample of that traffic to reverse-engineer the wire
-protocol from. To add it:
+Reverse-engineered from a packet capture of the vendor's own software
+pushing an update, plus `adb`-inspecting the player (`dct.geneva`) on a live
+unit. Implemented in [`src/lib/server/send.ts`](src/lib/server/send.ts).
 
-1. Run the vendor's software and the display on the same network.
-2. Capture traffic between them while pushing an update:
-   ```bash
-   sudo tcpdump -i <interface> host <display-ip> -w ota-capture.pcap
-   ```
-   (or run Wireshark on the machine running the vendor's software, filtered
-   to the display's IP).
-3. Share the resulting `.pcap` so the request/response shape can be decoded
-   the same way `config.xml` was.
+- The screen is a plaintext TCP **server** on port **16179**; the pushing
+  app is the client. No discovery, auth, or encryption — connect straight to
+  the screen's IP.
+- One connection per push. Handshake, send the zip, then the connection
+  closes:
+  ```
+  client → screen   04 + u64be(?)         HELLO (trailing value's meaning unconfirmed)
+  screen → client   03                    ACK
+  screen → client   u16be(len) + utf8     status string, e.g. "Cleaning..."
+  screen → client   01                    READY
+  client → screen   05 + u64be(zipLen)    BEGIN_TRANSFER
+  client → screen   <zipLen raw bytes>    the config.zip payload
+  screen → client   01                    TRANSFER_COMPLETE
+  ```
+- The payload is the same OPC-style zip built for the USB path — no wrapper,
+  no extra framing. `buildConfigZipForPreset` is reused unchanged.
 
-Once that's available, an OTA sender can be added as another route alongside
-the existing USB export, reusing `buildConfigZipForPreset` unchanged.
+**Open questions**, not yet confirmed against a second capture: the meaning
+of the 8-byte value sent with `HELLO` (currently sent as zero), and whether
+the `233.252.14.x` multicast groups the unit had joined are used for
+discovery/fan-out to multiple screens at once, or for something unrelated
+(the device also runs lift-intercom services on the same box). Today, a
+multi-screen "send to all" just opens one TCP connection per registered
+device — see `sendConfigZipToDevice`.
+
+**Known player constraint worth respecting when generating assets:** the
+player decodes images with a plain, unguarded `BitmapFactory.decodeFile()`
+against a 64 MiB heap — an oversized source image (large pixel dimensions,
+regardless of file size on disk) causes an uncaught `OutOfMemoryError` and
+an indefinite boot loop until the file is removed over `adb`. Since every
+asset this app generates is normalized to 1080×1920 (~7.9 MiB decoded),
+that's already well inside the safe margin.

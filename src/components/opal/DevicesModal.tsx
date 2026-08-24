@@ -60,8 +60,8 @@ export default function DevicesModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <p className="text-sm text-muted">
-          Register each physical display so a design can be sent straight to it. Sending isn&apos;t wired up to real
-          hardware yet — this just gets the address book ready.
+          Register each physical display so a design can be sent straight to it. Use the IP address it shows on its
+          own network settings screen.
         </p>
 
         {loading ? (
