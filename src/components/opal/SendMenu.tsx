@@ -6,6 +6,7 @@ import { PresetSummary } from "@/lib/opal/types";
 
 export default function SendMenu({ preset, onSend }: { preset: PresetSummary; onSend: (preset: PresetSummary) => void }) {
   const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -18,6 +19,15 @@ export default function SendMenu({ preset, onSend }: { preset: PresetSummary; on
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
+
+  const handleCopyId = async () => {
+    await navigator.clipboard.writeText(preset.id);
+    setCopied(true);
+    setTimeout(() => {
+      setCopied(false);
+      setOpen(false);
+    }, 900);
+  };
 
   return (
     <div ref={containerRef} className="relative">
@@ -52,6 +62,13 @@ export default function SendMenu({ preset, onSend }: { preset: PresetSummary; on
             <SendIcon />
             Push to lectern
           </button>
+          <button
+            onClick={handleCopyId}
+            className="flex w-full items-center gap-2 whitespace-nowrap px-3 py-2 text-left text-sm text-foreground hover:bg-surface-hover"
+          >
+            <CopyIcon />
+            {copied ? "Copied!" : "Copy ID (for Companion)"}
+          </button>
         </div>
       )}
     </div>
@@ -69,6 +86,15 @@ function SendIcon() {
         strokeLinecap="round"
       />
       <path d="M7.5 9 13.5 2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <rect x="5.5" y="5.5" width="8" height="9" rx="1.3" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M3.5 10.5v-7A1.3 1.3 0 0 1 4.8 2.2h6.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
     </svg>
   );
 }

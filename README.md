@@ -186,3 +186,6 @@ Like the OTA push itself, it's unauthenticated and local-network-only.
   a module instance under Turbopack's dev bundler); keeps the last 200,
   useful for confirming Companion is actually reaching the app and sending
   what you expect before chasing anything further downstream.
+- **IDs:** if you'd rather point Companion at something that survives a
+  rename, every preset's paper-airplane menu and each lectern row in
+  Settings has a "Copy ID" action.

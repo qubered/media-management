@@ -125,6 +125,7 @@ function LecternsTab() {
           {devices.map((device) => (
             <NamedHostRow
               key={device.id}
+              id={device.id}
               name={device.name}
               subtitle={device.host}
               onRename={(newName) => handleRename(device, newName)}
@@ -343,11 +344,13 @@ function LogTab() {
 }
 
 function NamedHostRow({
+  id,
   name,
   subtitle,
   onRename,
   onDelete,
 }: {
+  id?: string;
   name: string;
   subtitle: string;
   onRename: (name: string) => void;
@@ -355,12 +358,20 @@ function NamedHostRow({
 }) {
   const [renaming, setRenaming] = useState(false);
   const [value, setValue] = useState(name);
+  const [copied, setCopied] = useState(false);
 
   const commit = () => {
     setRenaming(false);
     const trimmed = value.trim();
     if (trimmed && trimmed !== name) onRename(trimmed);
     else setValue(name);
+  };
+
+  const handleCopyId = async () => {
+    if (!id) return;
+    await navigator.clipboard.writeText(id);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 900);
   };
 
   return (
@@ -392,15 +403,44 @@ function NamedHostRow({
         )}
         <span className="truncate text-xs text-muted">{subtitle}</span>
       </div>
-      <button
-        onClick={onDelete}
-        className="shrink-0 rounded-full p-1.5 text-muted hover:bg-surface-hover hover:text-danger"
-        title="Remove"
-        aria-label="Remove"
-      >
-        <TrashIcon />
-      </button>
+      <div className="flex shrink-0 items-center gap-0.5">
+        {id && (
+          <button
+            onClick={handleCopyId}
+            className="rounded-full p-1.5 text-muted hover:bg-surface-hover hover:text-accent"
+            title={copied ? "Copied!" : "Copy ID (for Companion)"}
+            aria-label="Copy ID"
+          >
+            {copied ? <CheckIcon /> : <CopyIcon />}
+          </button>
+        )}
+        <button
+          onClick={onDelete}
+          className="rounded-full p-1.5 text-muted hover:bg-surface-hover hover:text-danger"
+          title="Remove"
+          aria-label="Remove"
+        >
+          <TrashIcon />
+        </button>
+      </div>
     </li>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <rect x="5.5" y="5.5" width="8" height="9" rx="1.3" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M3.5 10.5v-7A1.3 1.3 0 0 1 4.8 2.2h6.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path d="M3 8.5 6.3 12 13 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
