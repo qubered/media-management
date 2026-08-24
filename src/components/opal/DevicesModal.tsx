@@ -15,6 +15,10 @@ import {
   updateOscTarget,
 } from "@/lib/opal/apiClient";
 import { LecternDevice, OscLogEntry, OscTarget } from "@/lib/opal/types";
+import { CheckIcon, CopyIcon, TrashIcon } from "./icons";
+import EmptyState from "./ui/EmptyState";
+import IconButton from "./ui/IconButton";
+import Modal from "./ui/Modal";
 
 type Tab = "lecterns" | "osc" | "log";
 
@@ -22,33 +26,21 @@ export default function DevicesModal({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<Tab>("lecterns");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
-      <div
-        className="flex w-full max-w-md flex-col gap-4 rounded-3xl border border-border bg-surface p-6 shadow-[0_24px_60px_-16px_rgba(0,0,0,0.6)]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-xl text-foreground">Settings</h2>
-          <button onClick={onClose} className="text-muted hover:text-foreground">
-            ✕
-          </button>
-        </div>
-
-        <div className="flex gap-1 rounded-full border border-border-hairline bg-background p-1">
-          <TabButton active={tab === "lecterns"} onClick={() => setTab("lecterns")}>
-            Lecterns
-          </TabButton>
-          <TabButton active={tab === "osc"} onClick={() => setTab("osc")}>
-            OSC control
-          </TabButton>
-          <TabButton active={tab === "log"} onClick={() => setTab("log")}>
-            Log
-          </TabButton>
-        </div>
-
-        {tab === "lecterns" ? <LecternsTab /> : tab === "osc" ? <OscTab /> : <LogTab />}
+    <Modal onClose={onClose} title="Settings">
+      <div className="flex gap-1 rounded-full border border-border-hairline bg-background p-1">
+        <TabButton active={tab === "lecterns"} onClick={() => setTab("lecterns")}>
+          Lecterns
+        </TabButton>
+        <TabButton active={tab === "osc"} onClick={() => setTab("osc")}>
+          OSC control
+        </TabButton>
+        <TabButton active={tab === "log"} onClick={() => setTab("log")}>
+          Log
+        </TabButton>
       </div>
-    </div>
+
+      {tab === "lecterns" ? <LecternsTab /> : tab === "osc" ? <OscTab /> : <LogTab />}
+    </Modal>
   );
 }
 
@@ -117,9 +109,7 @@ function LecternsTab() {
       {loading ? (
         <p className="text-sm text-muted">Loading…</p>
       ) : devices.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-sm text-muted">
-          No lecterns registered yet.
-        </p>
+        <EmptyState>No lecterns registered yet.</EmptyState>
       ) : (
         <ul className="flex max-h-64 flex-col gap-2 overflow-y-auto">
           {devices.map((device) => (
@@ -232,9 +222,7 @@ function OscTab() {
       {loading ? (
         <p className="text-sm text-muted">Loading…</p>
       ) : targets.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-sm text-muted">
-          No feedback targets yet — add Companion&apos;s own IP and its &quot;Listen for OSC&quot; port.
-        </p>
+        <EmptyState>No feedback targets yet — add Companion&apos;s own IP and its &quot;Listen for OSC&quot; port.</EmptyState>
       ) : (
         <ul className="flex max-h-48 flex-col gap-2 overflow-y-auto">
           {targets.map((target) => (
@@ -314,10 +302,10 @@ function LogTab() {
       {loading ? (
         <p className="text-sm text-muted">Loading…</p>
       ) : entries.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-sm text-muted">
+        <EmptyState>
           Nothing received yet. Send <code className="text-foreground-secondary">/lectern/ping</code> from Companion
           to test the connection.
-        </p>
+        </EmptyState>
       ) : (
         <ul className="flex max-h-96 flex-col gap-2 overflow-y-auto">
           {entries.map((entry) => (
@@ -405,55 +393,14 @@ function NamedHostRow({
       </div>
       <div className="flex shrink-0 items-center gap-0.5">
         {id && (
-          <button
-            onClick={handleCopyId}
-            className="rounded-full p-1.5 text-muted hover:bg-surface-hover hover:text-accent"
-            title={copied ? "Copied!" : "Copy ID (for Companion)"}
-            aria-label="Copy ID"
-          >
+          <IconButton title={copied ? "Copied!" : "Copy ID (for Companion)"} onClick={handleCopyId}>
             {copied ? <CheckIcon /> : <CopyIcon />}
-          </button>
+          </IconButton>
         )}
-        <button
-          onClick={onDelete}
-          className="rounded-full p-1.5 text-muted hover:bg-surface-hover hover:text-danger"
-          title="Remove"
-          aria-label="Remove"
-        >
+        <IconButton title="Remove" hoverClass="hover:text-danger" onClick={onDelete}>
           <TrashIcon />
-        </button>
+        </IconButton>
       </div>
     </li>
-  );
-}
-
-function CopyIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-      <rect x="5.5" y="5.5" width="8" height="9" rx="1.3" stroke="currentColor" strokeWidth="1.3" />
-      <path d="M3.5 10.5v-7A1.3 1.3 0 0 1 4.8 2.2h6.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-      <path d="M3 8.5 6.3 12 13 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function TrashIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-      <path
-        d="M2.5 4.5h11M6.3 4.5V3a1 1 0 0 1 1-1h1.4a1 1 0 0 1 1 1v1.5M6.7 7.5v4M9.3 7.5v4M3.7 4.5l.6 8.3a1 1 0 0 0 1 .9h5.4a1 1 0 0 0 1-.9l.6-8.3"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }

@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { PresetSummary } from "@/lib/opal/types";
+import { PencilIcon, PinIcon, TrashIcon } from "./icons";
 import SendMenu from "./SendMenu";
+import IconButton from "./ui/IconButton";
 
 export default function PresetCard({
   preset,
@@ -93,70 +95,5 @@ export default function PresetCard({
         </div>
       </div>
     </div>
-  );
-}
-
-function IconButton({
-  title,
-  onClick,
-  hoverClass = "hover:text-accent",
-  children,
-}: {
-  title: string;
-  onClick: () => void;
-  hoverClass?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      aria-label={title}
-      className={`flex h-7 w-7 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-hover active:scale-90 ${hoverClass}`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function PencilIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-      <path
-        d="M11.3 2.3a1.4 1.4 0 0 1 2 2L5.6 12 2 13l1-3.6 8.3-7.1Z"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function PinIcon({ filled = false }: { filled?: boolean }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-      <path
-        d="M6.2 2.2h3.6l.4 3.6 2 1.7v1.3H3.8V7.5l2-1.7Z"
-        fill={filled ? "currentColor" : "none"}
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinejoin="round"
-      />
-      <path d="M8 9v5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function TrashIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-      <path
-        d="M2.5 4.5h11M6.3 4.5V3a1 1 0 0 1 1-1h1.4a1 1 0 0 1 1 1v1.5M6.7 7.5v4M9.3 7.5v4M3.7 4.5l.6 8.3a1 1 0 0 0 1 .9h5.4a1 1 0 0 0 1-.9l.6-8.3"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }

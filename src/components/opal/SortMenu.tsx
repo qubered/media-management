@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ChevronIcon } from "./icons";
 
 export default function SortMenu<T extends string>({
   value,
@@ -56,13 +57,5 @@ export default function SortMenu<T extends string>({
         </div>
       )}
     </div>
-  );
-}
-
-function ChevronIcon({ className = "" }: { className?: string }) {
-  return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" className={`transition-transform ${className}`}>
-      <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }
