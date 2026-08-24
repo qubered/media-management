@@ -109,6 +109,14 @@ structural differences (only fields that legitimately differ per-deployment
 - One full-screen media item per config, always normalized to 1080x1920.
 - Download the `config.zip` directly, or push it straight to a registered
   screen over the network (see below). No USB step required either way.
+- **Import .zip** in the library header parses an existing config.zip —
+  this app's own export, or one built by the vendor's own designer
+  software — pulls out its background color and single full-screen
+  image/video asset, and adds it as a normal editable preset. Only
+  supports that single-full-screen layout; anything else (multiple
+  items, `staticText`, populated `DynamicComponents`) is rejected with a
+  specific error rather than silently imported wrong. See
+  [`importConfigZip.ts`](src/lib/server/importConfigZip.ts).
 
 ## OTA push protocol
 

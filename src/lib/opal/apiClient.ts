@@ -63,6 +63,13 @@ export async function fetchPresetSource(id: string): Promise<File> {
   return new File([blob], "source", { type: blob.type });
 }
 
+export async function importConfigZip(file: File): Promise<PresetSummary> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch("/api/presets/import", { method: "POST", body: form });
+  return unwrap(res);
+}
+
 export async function recropPreset(id: string, crop: CropRect, backgroundColor: string): Promise<PresetSummary> {
   const res = await fetch(`/api/presets/${id}/recrop`, {
     method: "POST",

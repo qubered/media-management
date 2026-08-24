@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { deletePreset, listPresets, updatePreset } from "@/lib/opal/apiClient";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { deletePreset, importConfigZip, listPresets, updatePreset } from "@/lib/opal/apiClient";
 import { PresetSummary } from "@/lib/opal/types";
 import EditPresetModal from "./EditPresetModal";
 import MediaBuilder from "./MediaBuilder";
@@ -47,6 +47,9 @@ export default function PresetLibrary() {
   const [builderOpen, setBuilderOpen] = useState(false);
   const [editingPreset, setEditingPreset] = useState<PresetSummary | null>(null);
   const [sendingPreset, setSendingPreset] = useState<PresetSummary | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState("");
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -108,6 +111,22 @@ export default function PresetLibrary() {
     await updatePreset(preset.id, { pinned });
   };
 
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImporting(true);
+    setImportError("");
+    try {
+      const preset = await importConfigZip(file);
+      setPresets((prev) => [preset, ...prev]);
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "Import failed");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const total = pinned.length + rest.length;
 
   return (
@@ -128,13 +147,25 @@ export default function PresetLibrary() {
             </p>
           </div>
 
-          <button
-            onClick={() => setBuilderOpen(true)}
-            className="shrink-0 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-colors hover:bg-accent-hover"
-          >
-            + New design
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <input ref={importInputRef} type="file" accept=".zip" className="hidden" onChange={handleImportFile} />
+            <button
+              onClick={() => importInputRef.current?.click()}
+              disabled={importing}
+              className="rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-hover disabled:opacity-50"
+            >
+              {importing ? "Importing…" : "Import .zip"}
+            </button>
+            <button
+              onClick={() => setBuilderOpen(true)}
+              className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-colors hover:bg-accent-hover"
+            >
+              + New design
+            </button>
+          </div>
         </div>
+
+        {importError && <p className="text-sm text-danger">{importError}</p>}
 
         <div className="flex flex-nowrap items-center gap-2 overflow-x-auto">
           <input
