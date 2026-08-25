@@ -130,7 +130,7 @@ function LecternsTab() {
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Name (e.g. Foyer lectern)"
+            placeholder="Name (e.g. Hall lectern)"
             className="min-w-0 flex-1 rounded-full border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
           />
           <input
