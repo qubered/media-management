@@ -18,17 +18,27 @@ function kindFromFile(file: File): MediaKind | null {
 }
 
 export default function MediaBuilder({
+  initialFile,
   onClose,
   onSaved,
 }: {
+  initialFile?: File;
   onClose: () => void;
   onSaved: (preset: PresetSummary) => void;
 }) {
-  const [step, setStep] = useState<Step>("drop");
-  const [pending, setPending] = useState<{ file: File; kind: MediaKind } | null>(null);
+  const initialKind = initialFile ? kindFromFile(initialFile) : null;
+  const [step, setStep] = useState<Step>(() => {
+    if (!initialFile) return "drop";
+    return initialKind ? "crop" : "error";
+  });
+  const [pending, setPending] = useState<{ file: File; kind: MediaKind } | null>(() =>
+    initialFile && initialKind ? { file: initialFile, kind: initialKind } : null,
+  );
   const [draft, setDraft] = useState<PresetSummary | null>(null);
   const [name, setName] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() =>
+    initialFile && !initialKind ? "Only image or video files are supported." : "",
+  );
   const [saving, setSaving] = useState(false);
 
   const handleFile = (file: File) => {
