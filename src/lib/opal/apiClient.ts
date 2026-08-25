@@ -1,4 +1,15 @@
-import { CropRect, DeviceHealth, LecternDevice, OscLogEntry, OscTarget, PresetSummary, SendResult } from "./types";
+import {
+  CropRect,
+  DeviceHealth,
+  LecternDevice,
+  OscLogEntry,
+  OscTarget,
+  PresetSummary,
+  Schedule,
+  ScheduledDelivery,
+  ScheduleInput,
+  SendResult,
+} from "./types";
 
 async function unwrap<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -169,4 +180,46 @@ export async function getOscLog(): Promise<OscLogEntry[]> {
 
 export async function clearOscLog(): Promise<void> {
   await fetch("/api/osc/log", { method: "DELETE" });
+}
+
+export async function listSchedules(): Promise<Schedule[]> {
+  const res = await fetch("/api/schedules", { cache: "no-store" });
+  return unwrap(res);
+}
+
+export async function createSchedule(input: ScheduleInput): Promise<Schedule> {
+  const res = await fetch("/api/schedules", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return unwrap(res);
+}
+
+export async function updateSchedule(id: string, updates: Partial<ScheduleInput>): Promise<Schedule> {
+  const res = await fetch(`/api/schedules/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+  return unwrap(res);
+}
+
+export async function deleteSchedule(id: string): Promise<void> {
+  const res = await fetch(`/api/schedules/${id}`, { method: "DELETE" });
+  if (!res.ok && res.status !== 404) {
+    throw new Error(`Failed to delete schedule (${res.status})`);
+  }
+}
+
+export async function listScheduledDeliveries(scheduleIds: string[]): Promise<ScheduledDelivery[]> {
+  if (scheduleIds.length === 0) return [];
+  const res = await fetch(`/api/schedules/deliveries?scheduleIds=${scheduleIds.join(",")}`, { cache: "no-store" });
+  return unwrap(res);
+}
+
+export async function triggerSchedule(id: string): Promise<SendResult[]> {
+  const res = await fetch(`/api/schedules/${id}/trigger`, { method: "POST" });
+  const body = await unwrap<{ results: SendResult[] }>(res);
+  return body.results;
 }

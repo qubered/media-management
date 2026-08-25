@@ -129,7 +129,11 @@ All routes are under `src/app/api/`, JSON in/out unless noted.
 | `/api/osc-targets` | `GET`, `POST` | List / register an OSC feedback target |
 | `/api/osc-targets/:id` | `PATCH`, `DELETE` | Rename/re-address; remove |
 | `/api/osc/info` | `GET` | `{ listenPort: number }` |
-| `/api/osc/log` | `GET`, `DELETE` | Read / clear the OSC activity log |
+| `/api/osc/log` | `GET`, `DELETE` | Read / clear the activity log (OSC commands and scheduled pushes) |
+| `/api/schedules` | `GET`, `POST` | List / create a schedule |
+| `/api/schedules/:id` | `PATCH`, `DELETE` | Edit any field (including `enabled`); delete (cascades its delivery history) |
+| `/api/schedules/:id/trigger` | `POST` | Fire it right now, independent of its own cadence — `{ results: SendResult[] }` |
+| `/api/schedules/deliveries` | `GET` | `?scheduleIds=id1,id2` → the offline-retry queue rows for those schedules, newest occurrence first |
 
 Every route has a matching function in
 [`src/lib/opal/apiClient.ts`](src/lib/opal/apiClient.ts) — that file is the
@@ -275,33 +279,46 @@ Like the OTA push itself, it's unauthenticated and local-network-only.
   live in the app under the gear icon → **OSC control**.
 - **Commands** (Companion → this app):
   ```
-  /lectern/send <preset> <lectern>   push a design to one lectern
-  /lectern/send <preset>             push to every registered lectern
-  /lectern/ping                      replies directly with /lectern/pong
+  /lectern/send <preset> <lectern>       push a design to one lectern
+  /lectern/send <preset>                 push to every registered lectern
+  /lectern/ping                          replies directly with /lectern/pong
+  /lectern/schedule/trigger <schedule>   fires it now, independent of its cadence
+  /lectern/schedule/enable <schedule>
+  /lectern/schedule/disable <schedule>
+  /lectern/schedule/poll                 replies directly with every schedule's state
   ```
-  `<preset>` and `<lectern>` match by name or id, case-insensitive — so a
-  Companion button can just use the same names shown in the app.
+  `<preset>`, `<lectern>`, and `<schedule>` all match by name or id,
+  case-insensitive — so a Companion button can just use the same names
+  shown in the app.
 - **Feedback**: add Companion's own IP and its "Listen for OSC" port under
   **OSC control** in Settings, then sends broadcast:
   ```
   /lectern/feedback/send <lectern> <preset> <status> <message>
     status: sending | sent | failed
-  /lectern/feedback/error <address> <detail>   unresolved preset/lectern name
+  /lectern/feedback/schedule <schedule> <enabled|disabled> <status>
+    status: sent | pending | expired | none  (see "Scheduling" below)
+  /lectern/feedback/error <address> <detail>   unresolved preset/lectern/schedule name
   ```
-  A send triggered by an OSC `/lectern/send` command only notifies the
-  registered target(s) whose IP matches whoever sent that command — other
-  registered targets stay silent for a command they didn't issue. A send
-  triggered from the web UI has no equivalent "sender" to scope to, so it
-  broadcasts to every registered target. Use these to drive Companion button
+  A send triggered by an OSC `/lectern/send` or `/lectern/schedule/trigger`
+  command only notifies the registered target(s) whose IP matches whoever
+  sent that command — other registered targets stay silent for a command
+  they didn't issue. A send triggered from the web UI or the scheduler's own
+  timer has no equivalent "sender" to scope to, so it broadcasts to every
+  registered target. `/lectern/schedule/poll` is answered directly to the
+  sender (like `/lectern/ping`) rather than broadcast, since it's a
+  request/response query, not an event. Use these to drive Companion button
   color/text feedback. Feedback targets are stored the same way lecterns are
   (`osc_targets` table), managed from the same Settings modal.
-- **Log:** Settings → **Log** shows every incoming OSC message — valid or
-  not — with its source, arguments, and outcome, polling every 2s. Backed by
-  SQLite rather than an in-memory array (see the note in `oscLog.ts` — the
-  instrumentation-hosted OSC server and the API routes don't reliably share
-  a module instance under Turbopack's dev bundler); keeps the last 200,
-  useful for confirming Companion is actually reaching the app and sending
-  what you expect before chasing anything further downstream.
+- **Log:** Settings → **Log** shows every incoming OSC message and every
+  scheduled push attempt — valid or not — with its source, arguments, and
+  outcome, polling every 2s. Scheduler-originated rows show `scheduler` as
+  the source instead of an IP. Backed by SQLite rather than an in-memory
+  array (see the note in `oscLog.ts` — the instrumentation-hosted OSC server
+  and the API routes don't reliably share a module instance under
+  Turbopack's dev bundler); keeps the last 200, useful for confirming
+  Companion is actually reaching the app and sending what you expect, or for
+  seeing exactly why a scheduled push failed, before chasing anything
+  further downstream.
 - **IDs:** if you'd rather point Companion at something that survives a
   rename, every preset's paper-airplane menu and each lectern row in
   Settings has a "Copy ID" action.

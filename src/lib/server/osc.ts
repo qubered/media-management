@@ -4,6 +4,9 @@ import { broadcastOscFeedback, replyOsc } from "./oscFeedback";
 import { pushOscLog } from "./oscLog";
 import { listPresets } from "./presets";
 import { pushPresetToDevices } from "./pushPreset";
+import { listSchedules, updateSchedule } from "./schedules";
+import { latestStatusForSchedule } from "./scheduledDeliveries";
+import { triggerSchedule } from "./scheduler";
 
 const OSC_PORT = Number(process.env.OSC_PORT) || 9000;
 
@@ -23,6 +26,12 @@ function resolveDeviceIds(idOrName: string): string[] {
   if (!idOrName || idOrName.toLowerCase() === "all") return devices.map((d) => d.id);
   const match = devices.find((d) => d.id === idOrName || d.name.toLowerCase() === idOrName.toLowerCase());
   return match ? [match.id] : [];
+}
+
+/** Matches a Companion-supplied id or name (case-insensitive) against a schedule. */
+function resolveSchedule(idOrName: string): { id: string; name: string } | null {
+  const match = listSchedules().find((s) => s.id === idOrName || s.name.toLowerCase() === idOrName.toLowerCase());
+  return match ? { id: match.id, name: match.name } : null;
 }
 
 let started = false;
@@ -78,6 +87,64 @@ export function startOscServer(): void {
       const detail = `pushing "${preset.name}" to ${deviceIds.length} lectern${deviceIds.length === 1 ? "" : "s"}`;
       pushOscLog({ from, address, args: argStrings, ok: true, detail });
       void pushPresetToDevices(preset.id, deviceIds, rinfo.address);
+      return;
+    }
+
+    if (address === "/lectern/schedule/trigger") {
+      const nameArg = asString(args[0]);
+      const schedule = resolveSchedule(nameArg);
+      if (!schedule) {
+        const detail = `unknown schedule: "${nameArg}"`;
+        broadcastOscFeedback("/lectern/feedback/error", [address, detail], rinfo.address);
+        pushOscLog({ from, address, args: argStrings, ok: false, detail });
+        return;
+      }
+
+      const detail = `manually triggering "${schedule.name}"`;
+      pushOscLog({ from, address, args: argStrings, ok: true, detail });
+      // pushPresetToDevices (inside triggerSchedule) already broadcasts /lectern/feedback/send per device.
+      void triggerSchedule(schedule.id);
+      return;
+    }
+
+    if (address === "/lectern/schedule/enable" || address === "/lectern/schedule/disable") {
+      const nameArg = asString(args[0]);
+      const schedule = resolveSchedule(nameArg);
+      if (!schedule) {
+        const detail = `unknown schedule: "${nameArg}"`;
+        broadcastOscFeedback("/lectern/feedback/error", [address, detail], rinfo.address);
+        pushOscLog({ from, address, args: argStrings, ok: false, detail });
+        return;
+      }
+
+      const enabled = address === "/lectern/schedule/enable";
+      updateSchedule(schedule.id, { enabled });
+      const detail = `${enabled ? "enabled" : "disabled"} "${schedule.name}"`;
+      broadcastOscFeedback(
+        "/lectern/feedback/schedule",
+        [schedule.name, enabled ? "enabled" : "disabled", latestStatusForSchedule(schedule.id)],
+        rinfo.address,
+      );
+      pushOscLog({ from, address, args: argStrings, ok: true, detail });
+      return;
+    }
+
+    if (address === "/lectern/schedule/poll") {
+      const schedules = listSchedules();
+      for (const schedule of schedules) {
+        replyOsc(rinfo.address, rinfo.port, "/lectern/feedback/schedule", [
+          schedule.name,
+          schedule.enabled ? "enabled" : "disabled",
+          latestStatusForSchedule(schedule.id),
+        ]);
+      }
+      pushOscLog({
+        from,
+        address,
+        args: argStrings,
+        ok: true,
+        detail: `replied with ${schedules.length} schedule${schedules.length === 1 ? "" : "s"}`,
+      });
       return;
     }
 

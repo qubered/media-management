@@ -98,3 +98,71 @@ export interface OscLogEntry {
   ok: boolean;
   detail: string;
 }
+
+export type RecurrenceType = "once" | "daily" | "weekly" | "monthly" | "interval";
+
+/** A rule that pushes a preset to devices on a schedule, with offline-retry semantics. */
+export interface Schedule {
+  id: string;
+  name: string;
+  presetId: string;
+  deviceIds: string[];
+  recurrenceType: RecurrenceType;
+  /** epoch ms — only for `once` */
+  runAt: number | null;
+  /** "HH:MM" — daily/weekly/monthly */
+  timeOfDay: string | null;
+  /** 0=Sun..6=Sat — weekly only */
+  daysOfWeek: number[] | null;
+  /** 1-31, clamped to the shorter month — monthly only */
+  dayOfMonth: number | null;
+  /** interval only */
+  intervalMinutes: number | null;
+  /** If set, defines an explicit content window [occurrence, occurrence+duration] that stays valid to retry into. If null, the occurrence is an instant trigger that falls back to `graceMinutes`. */
+  durationMinutes: number | null;
+  /** Retry window when `durationMinutes` is null. Default 15. */
+  graceMinutes: number;
+  /** Optional bounds so a recurring rule doesn't fire forever past a booking's date range. */
+  activeFrom: number | null;
+  activeUntil: number | null;
+  /** epoch ms — precomputed, polled by the scheduler */
+  nextRunAt: number;
+  enabled: boolean;
+  lastRunAt: number | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type ScheduledDeliveryStatus = "pending" | "sent" | "superseded" | "cancelled" | "expired";
+
+/** One attempt (and its retries) to deliver a single schedule occurrence to a single device — the offline retry queue. */
+export interface ScheduledDelivery {
+  id: string;
+  scheduleId: string;
+  deviceId: string;
+  occurrenceAt: number;
+  validUntil: number;
+  status: ScheduledDeliveryStatus;
+  attempts: number;
+  lastAttemptAt: number | null;
+  lastError: string | null;
+  createdAt: number;
+}
+
+/** POST/PATCH body for a schedule — mirrors Schedule minus server-computed fields. */
+export interface ScheduleInput {
+  name: string;
+  presetId: string;
+  deviceIds: string[];
+  recurrenceType: RecurrenceType;
+  runAt?: number;
+  timeOfDay?: string;
+  daysOfWeek?: number[];
+  dayOfMonth?: number;
+  intervalMinutes?: number;
+  durationMinutes?: number;
+  graceMinutes?: number;
+  activeFrom?: number;
+  activeUntil?: number;
+  enabled?: boolean;
+}

@@ -118,6 +118,29 @@ export function PulseIcon() {
   );
 }
 
+export function BookIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path
+        d="M8 3.4C6.8 2.5 5 2.1 3 2.1v9.2c2 0 3.8.4 5 1.3M8 3.4c1.2-.9 3-1.3 5-1.3v9.2c-2 0-3.8.4-5 1.3M8 3.4v9.2"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function ClockIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M8 4.8V8l2.4 1.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function TrashIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
