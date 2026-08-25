@@ -8,10 +8,13 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "emulator": "tsx emulator/server.ts",
     "prepare": "husky"
   },
   "lint-staged": {
-    "*.{ts,tsx}": ["eslint --fix"]
+    "*.{ts,tsx}": [
+      "eslint --fix"
+    ]
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",
@@ -38,6 +41,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.3.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.12",
     "typescript": "^5"
   }
 }
