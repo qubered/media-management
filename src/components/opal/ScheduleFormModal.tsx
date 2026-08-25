@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createSchedule, listDevices, listPresets, updateSchedule } from "@/lib/opal/apiClient";
 import { LecternDevice, PresetSummary, Schedule, ScheduleInput } from "@/lib/opal/types";
+import { CheckIcon, CopyIcon } from "./icons";
 import DeviceMultiSelect from "./schedule/DeviceMultiSelect";
 import PresetPicker from "./schedule/PresetPicker";
 import RecurrenceFields, { RecurrenceValue } from "./schedule/RecurrenceFields";
@@ -56,6 +57,14 @@ export default function ScheduleFormModal({
   const [recurrence, setRecurrence] = useState<RecurrenceValue>(initialRecurrence(schedule));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyId = async () => {
+    if (!schedule) return;
+    await navigator.clipboard.writeText(schedule.id);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 900);
+  };
 
   useEffect(() => {
     Promise.all([listPresets(), listDevices()])
@@ -130,21 +139,35 @@ export default function ScheduleFormModal({
 
           {error && <p className="text-sm text-danger">{error}</p>}
 
-          <div className="flex justify-end gap-2 border-t border-border-hairline pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-full border border-border px-4 py-2 text-sm font-medium hover:bg-surface-hover"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!canSubmit || saving}
-              className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-colors hover:bg-accent-hover disabled:opacity-50"
-            >
-              {saving ? "Saving…" : "Save schedule"}
-            </button>
+          <div className="flex items-center justify-between gap-2 border-t border-border-hairline pt-4">
+            {schedule ? (
+              <button
+                type="button"
+                onClick={handleCopyId}
+                className="flex items-center gap-1.5 text-xs text-muted hover:text-accent"
+              >
+                {copied ? <CheckIcon /> : <CopyIcon />}
+                {copied ? "Copied!" : "Copy ID (for Companion)"}
+              </button>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-full border border-border px-4 py-2 text-sm font-medium hover:bg-surface-hover"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={!canSubmit || saving}
+                className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-colors hover:bg-accent-hover disabled:opacity-50"
+              >
+                {saving ? "Saving…" : "Save schedule"}
+              </button>
+            </div>
           </div>
         </form>
       )}
