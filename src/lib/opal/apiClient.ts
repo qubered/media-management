@@ -1,4 +1,4 @@
-import { CropRect, LecternDevice, OscLogEntry, OscTarget, PresetSummary, SendResult } from "./types";
+import { CropRect, DeviceHealth, LecternDevice, OscLogEntry, OscTarget, PresetSummary, SendResult } from "./types";
 
 async function unwrap<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -107,6 +107,11 @@ export async function deleteDevice(id: string): Promise<void> {
   if (!res.ok && res.status !== 404) {
     throw new Error(`Failed to delete device (${res.status})`);
   }
+}
+
+export async function checkDeviceHealth(id: string): Promise<DeviceHealth> {
+  const res = await fetch(`/api/devices/${id}/health`, { cache: "no-store" });
+  return unwrap(res);
 }
 
 export async function sendPresetToDevices(presetId: string, deviceIds: string[]): Promise<SendResult[]> {

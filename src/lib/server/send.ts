@@ -2,6 +2,7 @@ import net from "node:net";
 
 const OPAL_PORT = 16179;
 const IDLE_TIMEOUT_MS = 20_000;
+const PING_TIMEOUT_MS = 5_000;
 
 const CMD_READY = 0x01;
 const CMD_ACK = 0x03;
@@ -32,10 +33,50 @@ export async function sendConfigZipToDevice(host: string, zip: Buffer): Promise<
   }
 }
 
-async function push(socket: net.Socket, host: string, zip: Buffer): Promise<string> {
-  await new Promise<void>((resolve) => socket.once("connect", resolve));
+/**
+ * Connects and runs the handshake through READY, then disconnects without
+ * ever sending BEGIN_TRANSFER — confirms the player app on the tablet is up
+ * and responding (and surfaces its status string) without pushing a design
+ * or triggering a reload.
+ */
+export async function pingDeviceApp(host: string): Promise<{ ok: boolean; status?: string; message: string }> {
+  const socket = net.createConnection({ host, port: OPAL_PORT });
+  socket.setTimeout(PING_TIMEOUT_MS);
+  socket.on("timeout", () => socket.destroy(new Error(`Connection to ${host}:${OPAL_PORT} timed out`)));
 
+  const failed = new Promise<never>((_, reject) => socket.once("error", reject));
+
+  try {
+    const status = await Promise.race([handshake(socket, makeReader(socket), host), failed]);
+    return { ok: true, status, message: status ? `App responded: "${status}"` : "App responded" };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : String(err) };
+  } finally {
+    socket.destroy();
+  }
+}
+
+async function push(socket: net.Socket, host: string, zip: Buffer): Promise<string> {
   const reader = makeReader(socket);
+  const status = await handshake(socket, reader, host);
+
+  const beginTransfer = Buffer.alloc(9);
+  beginTransfer.writeUInt8(CMD_BEGIN_TRANSFER, 0);
+  beginTransfer.writeBigUInt64BE(BigInt(zip.byteLength), 1);
+  socket.write(beginTransfer);
+  socket.write(zip);
+
+  const complete = await reader.readByte();
+  if (complete !== CMD_READY) {
+    throw new Error(`${host} did not confirm the transfer completed (0x${complete.toString(16).padStart(2, "0")})`);
+  }
+
+  return `Sent ${zip.byteLength.toLocaleString()} bytes to ${host}${status ? ` (${status})` : ""}`;
+}
+
+/** HELLO through READY — the half of the protocol shared by a real push and a no-op app ping. */
+async function handshake(socket: net.Socket, reader: ReturnType<typeof makeReader>, host: string): Promise<string> {
+  await new Promise<void>((resolve) => socket.once("connect", resolve));
 
   // HELLO: cmd byte + 8-byte value. The value's meaning isn't confirmed
   // against a second capture yet (spec §3.2) — zero is accepted by the
@@ -58,18 +99,7 @@ async function push(socket: net.Socket, host: string, zip: Buffer): Promise<stri
     throw new Error(`${host} did not signal ready after "${status}" (0x${ready.toString(16).padStart(2, "0")})`);
   }
 
-  const beginTransfer = Buffer.alloc(9);
-  beginTransfer.writeUInt8(CMD_BEGIN_TRANSFER, 0);
-  beginTransfer.writeBigUInt64BE(BigInt(zip.byteLength), 1);
-  socket.write(beginTransfer);
-  socket.write(zip);
-
-  const complete = await reader.readByte();
-  if (complete !== CMD_READY) {
-    throw new Error(`${host} did not confirm the transfer completed (0x${complete.toString(16).padStart(2, "0")})`);
-  }
-
-  return `Sent ${zip.byteLength.toLocaleString()} bytes to ${host}${status ? ` (${status})` : ""}`;
+  return status;
 }
 
 function makeReader(socket: net.Socket) {

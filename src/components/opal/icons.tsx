@@ -104,6 +104,20 @@ export function PinIcon({ filled = false }: { filled?: boolean }) {
   );
 }
 
+export function PulseIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path
+        d="M1.5 8.5h3l1.4-4.2L8.6 12l1.7-6.5 1 3h3.2"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function TrashIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none">

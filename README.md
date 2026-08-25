@@ -125,6 +125,7 @@ All routes are under `src/app/api/`, JSON in/out unless noted.
 | `/api/presets/import` | `POST` | Multipart `config.zip` upload → new preset |
 | `/api/devices` | `GET`, `POST` | List / register a lectern |
 | `/api/devices/:id` | `PATCH`, `DELETE` | Rename/re-address; remove |
+| `/api/devices/:id/health` | `GET` | Two-layer check: ICMP ping the tablet, then a no-op OTA handshake against the player app — no design pushed, no reload |
 | `/api/osc-targets` | `GET`, `POST` | List / register an OSC feedback target |
 | `/api/osc-targets/:id` | `PATCH`, `DELETE` | Rename/re-address; remove |
 | `/api/osc/info` | `GET` | `{ listenPort: number }` |
@@ -207,6 +208,15 @@ unit. Implemented in [`src/lib/server/send.ts`](src/lib/server/send.ts).
   ```
 - The payload is the same OPC-style zip built for the USB path — no wrapper,
   no extra framing. `buildConfigZipForPreset` is reused unchanged.
+- **Health check without a push:** the handshake through `READY` (`HELLO` →
+  `ACK` → status string → `READY`) happens *before* `BEGIN_TRANSFER`, so it
+  doubles as a non-destructive liveness check for the player app — connect,
+  read the status, disconnect. `pingDeviceApp` in `send.ts` shares the same
+  `handshake()` helper `sendConfigZipToDevice` uses, stopping right there
+  instead of continuing to the transfer. `GET /api/devices/:id/health`
+  layers this under an OS-level `ping` of the tablet itself (`ping.ts`), so
+  a dead tablet and a hung player app show up as two different states
+  instead of one generic "unreachable."
 
 **Open questions**, not yet confirmed against a second capture: the meaning
 of the 8-byte value sent with `HELLO` (currently sent as zero), and whether
