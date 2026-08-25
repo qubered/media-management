@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
+  checkDeviceHealth,
   clearOscLog,
   createDevice,
   createOscTarget,
@@ -14,8 +15,8 @@ import {
   updateDevice,
   updateOscTarget,
 } from "@/lib/opal/apiClient";
-import { LecternDevice, OscLogEntry, OscTarget } from "@/lib/opal/types";
-import { CheckIcon, CopyIcon, TrashIcon } from "./icons";
+import { DeviceHealth, LecternDevice, OscLogEntry, OscTarget } from "@/lib/opal/types";
+import { CheckIcon, CopyIcon, PulseIcon, TrashIcon } from "./icons";
 import EmptyState from "./ui/EmptyState";
 import IconButton from "./ui/IconButton";
 import Modal from "./ui/Modal";
@@ -64,12 +65,23 @@ function LecternsTab() {
   const [host, setHost] = useState("");
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
+  const [health, setHealth] = useState<Record<string, "checking" | DeviceHealth | "error">>({});
 
   useEffect(() => {
     listDevices()
       .then(setDevices)
       .finally(() => setLoading(false));
   }, []);
+
+  const handleCheck = async (device: LecternDevice) => {
+    setHealth((prev) => ({ ...prev, [device.id]: "checking" }));
+    try {
+      const result = await checkDeviceHealth(device.id);
+      setHealth((prev) => ({ ...prev, [device.id]: result }));
+    } catch {
+      setHealth((prev) => ({ ...prev, [device.id]: "error" }));
+    }
+  };
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,6 +132,8 @@ function LecternsTab() {
               subtitle={device.host}
               onRename={(newName) => handleRename(device, newName)}
               onDelete={() => handleDelete(device)}
+              onCheck={() => handleCheck(device)}
+              health={health[device.id]}
             />
           ))}
         </ul>
@@ -339,12 +353,16 @@ function NamedHostRow({
   subtitle,
   onRename,
   onDelete,
+  onCheck,
+  health,
 }: {
   id?: string;
   name: string;
   subtitle: string;
   onRename: (name: string) => void;
   onDelete: () => void;
+  onCheck?: () => void;
+  health?: "checking" | DeviceHealth | "error";
 }) {
   const [renaming, setRenaming] = useState(false);
   const [value, setValue] = useState(name);
@@ -365,44 +383,71 @@ function NamedHostRow({
   };
 
   return (
-    <li className="flex items-center justify-between gap-2 rounded-xl border border-border-hairline bg-background px-3 py-2">
-      <div className="flex min-w-0 flex-col">
-        {renaming ? (
-          <input
-            autoFocus
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onBlur={commit}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commit();
-              if (e.key === "Escape") {
-                setValue(name);
-                setRenaming(false);
-              }
-            }}
-            className="rounded border border-accent bg-surface px-1.5 py-0.5 text-sm outline-none"
-          />
-        ) : (
-          <button
-            onClick={() => setRenaming(true)}
-            className="truncate text-left text-sm font-medium hover:text-accent"
-            title="Rename"
-          >
-            {name}
-          </button>
-        )}
-        <span className="truncate text-xs text-muted">{subtitle}</span>
-      </div>
-      <div className="flex shrink-0 items-center gap-0.5">
-        {id && (
-          <IconButton title={copied ? "Copied!" : "Copy ID (for Companion)"} onClick={handleCopyId}>
-            {copied ? <CheckIcon /> : <CopyIcon />}
+    <li className="flex flex-col gap-1.5 rounded-xl border border-border-hairline bg-background px-3 py-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-col">
+          {renaming ? (
+            <input
+              autoFocus
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onBlur={commit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commit();
+                if (e.key === "Escape") {
+                  setValue(name);
+                  setRenaming(false);
+                }
+              }}
+              className="rounded border border-accent bg-surface px-1.5 py-0.5 text-sm outline-none"
+            />
+          ) : (
+            <button
+              onClick={() => setRenaming(true)}
+              className="truncate text-left text-sm font-medium hover:text-accent"
+              title="Rename"
+            >
+              {name}
+            </button>
+          )}
+          <span className="truncate text-xs text-muted">{subtitle}</span>
+        </div>
+        <div className="flex shrink-0 items-center gap-0.5">
+          {onCheck && (
+            <IconButton title="Check health" onClick={onCheck}>
+              <PulseIcon />
+            </IconButton>
+          )}
+          {id && (
+            <IconButton title={copied ? "Copied!" : "Copy ID (for Companion)"} onClick={handleCopyId}>
+              {copied ? <CheckIcon /> : <CopyIcon />}
+            </IconButton>
+          )}
+          <IconButton title="Remove" hoverClass="hover:text-danger" onClick={onDelete}>
+            <TrashIcon />
           </IconButton>
-        )}
-        <IconButton title="Remove" hoverClass="hover:text-danger" onClick={onDelete}>
-          <TrashIcon />
-        </IconButton>
+        </div>
       </div>
+      {health && <HealthSummary health={health} />}
     </li>
+  );
+}
+
+function HealthSummary({ health }: { health: "checking" | DeviceHealth | "error" }) {
+  if (health === "checking") {
+    return <p className="text-xs text-muted">Checking…</p>;
+  }
+  if (health === "error") {
+    return <p className="text-xs text-danger">Health check failed to run.</p>;
+  }
+  return (
+    <div className="flex flex-col gap-0.5 border-t border-border-hairline pt-1.5 text-xs">
+      <p className={health.network.ok ? "text-accent" : "text-danger"}>
+        Tablet: {health.network.ok ? "online" : "unreachable"} — {health.network.message}
+      </p>
+      <p className={health.app.ok ? "text-accent" : "text-danger"}>
+        App: {health.app.ok ? "responding" : "not responding"} — {health.app.message}
+      </p>
+    </div>
   );
 }

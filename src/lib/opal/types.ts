@@ -73,6 +73,12 @@ export interface SendResult {
   message: string;
 }
 
+/** Result of checking a lectern in two layers, without pushing anything: is the tablet up on the network, and separately, is the player app on it responding. */
+export interface DeviceHealth {
+  network: { ok: boolean; message: string };
+  app: { ok: boolean; message: string; status?: string };
+}
+
 /** Where this app sends OSC feedback — typically Companion's own "Listen for OSC" port. */
 export interface OscTarget {
   id: string;
