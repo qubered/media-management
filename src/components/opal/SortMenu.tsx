@@ -29,7 +29,7 @@ export default function SortMenu<T extends string>({
   const current = options.find((o) => o.value === value);
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative shrink-0">
       <button
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm text-foreground hover:border-accent/50"
@@ -39,22 +39,26 @@ export default function SortMenu<T extends string>({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-20 min-w-full overflow-hidden rounded-xl border border-border bg-surface py-1 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.6)]">
-          {options.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => {
-                onChange(option.value);
-                setOpen(false);
-              }}
-              className={`block w-full whitespace-nowrap px-4 py-2 text-left text-sm hover:bg-surface-hover ${
-                option.value === value ? "text-accent" : "text-foreground"
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+        <>
+          <div className="fixed inset-0 z-20 bg-black/50 md:hidden" onClick={() => setOpen(false)} />
+          <div className="fixed inset-x-0 bottom-0 z-20 overflow-hidden rounded-t-2xl border border-border bg-surface pb-[calc(0.25rem+env(safe-area-inset-bottom))] shadow-[0_12px_32px_-8px_rgba(0,0,0,0.6)] md:absolute md:inset-x-auto md:bottom-auto md:right-0 md:top-[calc(100%+6px)] md:min-w-full md:rounded-xl md:py-1 md:pb-1">
+            <div className="mx-auto mb-1 mt-2 h-1 w-9 rounded-full bg-border md:hidden" />
+            {options.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                className={`block w-full whitespace-nowrap px-4 py-3 text-left text-sm hover:bg-surface-hover md:px-4 md:py-2 ${
+                  option.value === value ? "text-accent" : "text-foreground"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

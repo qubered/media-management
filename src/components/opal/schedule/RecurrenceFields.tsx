@@ -149,7 +149,7 @@ export default function RecurrenceFields({
                         key={day}
                         type="button"
                         onClick={() => toggleDay(day)}
-                        className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition-colors ${
+                        className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-medium transition-colors md:h-8 md:w-8 ${
                           (value.daysOfWeek ?? []).includes(day)
                             ? "bg-accent text-accent-foreground"
                             : "border border-border-hairline text-muted hover:text-foreground"

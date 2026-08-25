@@ -200,7 +200,7 @@ export default function PresetLibrary() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 sm:px-10">
       <header className="flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-2">
               <h1 className="font-display text-[18px] text-foreground">Presets</h1>
@@ -216,18 +216,18 @@ export default function PresetLibrary() {
             </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex items-center gap-2 sm:shrink-0">
             <input ref={importInputRef} type="file" accept=".zip" className="hidden" onChange={handleImportFile} />
             <button
               onClick={() => importInputRef.current?.click()}
               disabled={importing}
-              className="rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-hover disabled:opacity-50"
+              className="flex-1 rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-hover disabled:opacity-50 sm:flex-none"
             >
               {importing ? "Importing…" : "Import .zip"}
             </button>
             <button
               onClick={() => setBuilderOpen(true)}
-              className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-colors hover:bg-accent-hover"
+              className="flex-1 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-colors hover:bg-accent-hover sm:flex-none"
             >
               + New design
             </button>

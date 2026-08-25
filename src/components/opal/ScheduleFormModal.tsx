@@ -114,7 +114,7 @@ export default function ScheduleFormModal({
       {loading ? (
         <p className="text-sm text-muted">Loading…</p>
       ) : (
-        <form onSubmit={handleSubmit} className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto pr-1">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 md:max-h-[70vh] md:overflow-y-auto md:pr-1">
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted">Name</label>
             <input
