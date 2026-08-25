@@ -4,8 +4,10 @@
   Palette from the Harry the Hirer / HTH Productions brand guide — Harry's Blue (Pantone 2175C,
   #006AC6) is the one brand colour, "bold and energetic... used for all hero statements and to be
   contrasted with white." Montserrat is the guide's designated web font (Museo Sans/The Seasons are
-  print-only). Adapted to a dark theme using the brand's own near-black "Productions" panel colour,
-  with the brand's "Power" red (from the Productions category swatches) as the destructive/danger tone.
+  print-only). Adapted to a dark theme using the brand's own near-black "Productions" panel colour.
+  The Productions department's five category swatches (Rigging/Lighting/Audio/Video/Power) cover
+  every semantic accent this app needs beyond the primary blue — Power red is danger, Lighting amber
+  is the offline/retry warning, and Rigging/Audio/Video mark the schedule-kind dots (see SchedulePage).
 */
 :root {
   --background: #2b2a2c;
@@ -21,6 +23,10 @@
   --accent-pressed: #00549c;
   --accent-foreground: #ffffff;
   --danger: #d22730;
+  --warning: #ff9e1b;
+  --recurring: #6a6dcd;
+  --once-pending: #0093b2;
+  --once-fired: #00b398;
 }
 
 @theme inline {
@@ -37,6 +43,10 @@
   --color-accent-pressed: var(--accent-pressed);
   --color-accent-foreground: var(--accent-foreground);
   --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-recurring: var(--recurring);
+  --color-once-pending: var(--once-pending);
+  --color-once-fired: var(--once-fired);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
 }

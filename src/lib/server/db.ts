@@ -52,6 +52,49 @@ db.exec(`
   )
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS schedules (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    preset_id TEXT NOT NULL,
+    device_ids TEXT NOT NULL,
+    recurrence_type TEXT NOT NULL,
+    run_at INTEGER,
+    time_of_day TEXT,
+    days_of_week TEXT,
+    day_of_month INTEGER,
+    interval_minutes INTEGER,
+    duration_minutes INTEGER,
+    grace_minutes INTEGER NOT NULL DEFAULT 15,
+    active_from INTEGER,
+    active_until INTEGER,
+    next_run_at INTEGER NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    last_run_at INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS scheduled_deliveries (
+    id TEXT PRIMARY KEY,
+    schedule_id TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    occurrence_at INTEGER NOT NULL,
+    valid_until INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    last_attempt_at INTEGER,
+    last_error TEXT,
+    created_at INTEGER NOT NULL
+  )
+`);
+
+db.exec(`CREATE INDEX IF NOT EXISTS idx_schedules_next_run ON schedules (enabled, next_run_at)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_deliveries_status_device ON scheduled_deliveries (status, device_id)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_deliveries_schedule ON scheduled_deliveries (schedule_id)`);
+
 /** Lightweight migrations — ALTER TABLE ADD COLUMN throws if the column already exists, which we just ignore. */
 function migrate(sql: string) {
   try {
@@ -271,4 +314,121 @@ export function listOscLogRows(): OscLogRow[] {
 
 export function clearOscLogRows(): void {
   db.exec("DELETE FROM osc_log");
+}
+
+export interface ScheduleRow {
+  id: string;
+  name: string;
+  preset_id: string;
+  device_ids: string;
+  recurrence_type: "once" | "daily" | "weekly" | "monthly" | "interval";
+  run_at: number | null;
+  time_of_day: string | null;
+  days_of_week: string | null;
+  day_of_month: number | null;
+  interval_minutes: number | null;
+  duration_minutes: number | null;
+  grace_minutes: number;
+  active_from: number | null;
+  active_until: number | null;
+  next_run_at: number;
+  enabled: number;
+  last_run_at: number | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export function listScheduleRows(): ScheduleRow[] {
+  return db.prepare("SELECT * FROM schedules ORDER BY created_at ASC").all() as ScheduleRow[];
+}
+
+export function getScheduleRow(id: string): ScheduleRow | undefined {
+  return db.prepare("SELECT * FROM schedules WHERE id = ?").get(id) as ScheduleRow | undefined;
+}
+
+/** What the scheduler's fire-job polls each tick. */
+export function listDueScheduleRows(now: number): ScheduleRow[] {
+  return db.prepare("SELECT * FROM schedules WHERE enabled = 1 AND next_run_at <= ?").all(now) as ScheduleRow[];
+}
+
+export function insertScheduleRow(row: ScheduleRow): void {
+  db.prepare(
+    `INSERT INTO schedules (
+       id, name, preset_id, device_ids, recurrence_type, run_at, time_of_day, days_of_week, day_of_month,
+       interval_minutes, duration_minutes, grace_minutes, active_from, active_until, next_run_at, enabled,
+       last_run_at, created_at, updated_at
+     )
+     VALUES (
+       @id, @name, @preset_id, @device_ids, @recurrence_type, @run_at, @time_of_day, @days_of_week, @day_of_month,
+       @interval_minutes, @duration_minutes, @grace_minutes, @active_from, @active_until, @next_run_at, @enabled,
+       @last_run_at, @created_at, @updated_at
+     )`,
+  ).run(row);
+}
+
+/** Partial update — only keys present in `updates` are written. Schedules have ~13 optional-on-edit columns, so a dynamic SET clause beats one `if` per field. */
+export function updateScheduleRow(id: string, updates: Partial<Omit<ScheduleRow, "id" | "created_at">>): void {
+  const fields = Object.keys(updates) as (keyof typeof updates)[];
+  if (fields.length === 0) return;
+  const setClause = fields.map((f) => `${f} = @${f}`).join(", ");
+  db.prepare(`UPDATE schedules SET ${setClause} WHERE id = @id`).run({ id, ...updates });
+}
+
+export function deleteScheduleRow(id: string): void {
+  db.prepare("DELETE FROM schedules WHERE id = ?").run(id);
+}
+
+export interface ScheduledDeliveryRow {
+  id: string;
+  schedule_id: string;
+  device_id: string;
+  occurrence_at: number;
+  valid_until: number;
+  status: "pending" | "sent" | "superseded" | "cancelled" | "expired";
+  attempts: number;
+  last_attempt_at: number | null;
+  last_error: string | null;
+  created_at: number;
+}
+
+export function insertScheduledDeliveryRow(row: ScheduledDeliveryRow): void {
+  db.prepare(
+    `INSERT INTO scheduled_deliveries (
+       id, schedule_id, device_id, occurrence_at, valid_until, status, attempts, last_attempt_at, last_error, created_at
+     ) VALUES (@id, @schedule_id, @device_id, @occurrence_at, @valid_until, @status, @attempts, @last_attempt_at, @last_error, @created_at)`,
+  ).run(row);
+}
+
+export function listPendingDeliveryRows(): ScheduledDeliveryRow[] {
+  return db.prepare("SELECT * FROM scheduled_deliveries WHERE status = 'pending'").all() as ScheduledDeliveryRow[];
+}
+
+/** For the UI's per-schedule status chip — every delivery row for the given schedules, most recent occurrence first. */
+export function listDeliveryRowsForSchedules(scheduleIds: string[]): ScheduledDeliveryRow[] {
+  if (scheduleIds.length === 0) return [];
+  const placeholders = scheduleIds.map(() => "?").join(",");
+  return db
+    .prepare(`SELECT * FROM scheduled_deliveries WHERE schedule_id IN (${placeholders}) ORDER BY occurrence_at DESC`)
+    .all(...scheduleIds) as ScheduledDeliveryRow[];
+}
+
+export function updateScheduledDeliveryRow(
+  id: string,
+  updates: Partial<Pick<ScheduledDeliveryRow, "status" | "attempts" | "last_attempt_at" | "last_error">>,
+): void {
+  const fields = Object.keys(updates) as (keyof typeof updates)[];
+  if (fields.length === 0) return;
+  const setClause = fields.map((f) => `${f} = @${f}`).join(", ");
+  db.prepare(`UPDATE scheduled_deliveries SET ${setClause} WHERE id = @id`).run({ id, ...updates });
+}
+
+/** Bulk status flip — used to expire everything past `valid_until` and to supersede stale rows for a schedule+device. */
+export function markScheduledDeliveryRowsStatus(ids: string[], status: ScheduledDeliveryRow["status"]): void {
+  if (ids.length === 0) return;
+  const placeholders = ids.map(() => "?").join(",");
+  db.prepare(`UPDATE scheduled_deliveries SET status = ? WHERE id IN (${placeholders})`).run(status, ...ids);
+}
+
+export function deleteScheduledDeliveryRowsForSchedule(scheduleId: string): void {
+  db.prepare("DELETE FROM scheduled_deliveries WHERE schedule_id = ?").run(scheduleId);
 }

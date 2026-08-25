@@ -227,12 +227,22 @@ function OscTab() {
         <code className="block text-muted">/lectern/send &lt;preset&gt; &lt;lectern&gt;</code>
         <code className="block text-muted">/lectern/send &lt;preset&gt; — sends to every lectern</code>
         <code className="block text-muted">/lectern/ping — replies with /lectern/pong</code>
+        <code className="block text-muted">/lectern/schedule/trigger &lt;schedule&gt; — runs it now</code>
+        <code className="block text-muted">/lectern/schedule/enable &lt;schedule&gt;</code>
+        <code className="block text-muted">/lectern/schedule/disable &lt;schedule&gt;</code>
+        <code className="block text-muted">/lectern/schedule/poll — replies with every schedule&apos;s state</code>
         <p className="mb-1.5 mt-3 font-semibold text-foreground">
           Feedback from an OSC command goes only to the target matching the sender&apos;s IP
         </p>
         <code className="block text-muted">/lectern/feedback/send &lt;lectern&gt; &lt;preset&gt; &lt;status&gt; &lt;message&gt;</code>
+        <code className="block text-muted">
+          /lectern/feedback/schedule &lt;schedule&gt; &lt;enabled|disabled&gt; &lt;status&gt;
+        </code>
         <code className="block text-muted">/lectern/feedback/error &lt;address&gt; &lt;detail&gt;</code>
-        <p className="mt-1.5 text-muted">preset/lectern arguments match by name or id, case-insensitive.</p>
+        <p className="mt-1.5 text-muted">
+          preset/lectern/schedule arguments match by name or id, case-insensitive. A trigger reuses the same
+          feedback as a manual send.
+        </p>
       </div>
 
       {loading ? (
@@ -307,7 +317,9 @@ function LogTab() {
   return (
     <>
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm text-muted">Every incoming OSC command, valid or not — newest first.</p>
+        <p className="text-sm text-muted">
+          Every incoming OSC command and scheduled push, valid or not — newest first.
+        </p>
         {entries.length > 0 && (
           <button onClick={handleClear} className="shrink-0 text-xs text-muted hover:text-danger">
             Clear
