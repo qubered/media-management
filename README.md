@@ -28,6 +28,37 @@ format (`type: subject`) before they're accepted, and
 [CI](.github/workflows/ci.yml) runs typecheck/lint/build on every push and
 PR. See [CLAUDE.md](CLAUDE.md) "Working in this repo" for the details.
 
+### Running it in Docker
+
+```bash
+docker compose up -d --build
+```
+
+or, without compose:
+
+```bash
+docker build -t lectern-library .
+docker run -d --name lectern-library \
+  -p 3000:3000 -p 9000:9000/udp \
+  -v lectern-data:/data \
+  lectern-library
+```
+
+The image is a multi-stage build off Next's standalone output — the
+compiler (`better-sqlite3` needs one to build its native binding) never
+ships in the final image, only the runtime. It runs as the non-root `node`
+user and keeps everything — the SQLite DB and media store — under `/data`,
+which the `docker-compose.yml` here mounts as a named volume so the
+library survives a container rebuild. Map that volume to a host path
+instead if you'd rather back it up directly.
+
+Port `3000/tcp` is the web UI, `9000/udp` is the [OSC control](#osc-control-companion)
+listener (override with `OSC_PORT`). The device push (OTA, `16179/tcp`) and
+OSC feedback targets are outbound connections the container makes to
+lecterns/Companion on the venue LAN — regular bridge networking is enough
+for those, no host networking required, as long as the container can reach
+that LAN.
+
 ## The flow
 
 One page, one builder:
