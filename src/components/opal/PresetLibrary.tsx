@@ -49,6 +49,8 @@ export default function PresetLibrary() {
   const [sendingPreset, setSendingPreset] = useState<PresetSummary | null>(null);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
+  const [droppedFile, setDroppedFile] = useState<File | null>(null);
+  const [draggingFile, setDraggingFile] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
@@ -87,6 +89,12 @@ export default function PresetLibrary() {
   const handleSaved = (preset: PresetSummary) => {
     setPresets((prev) => [preset, ...prev]);
     setBuilderOpen(false);
+    setDroppedFile(null);
+  };
+
+  const handleCloseBuilder = () => {
+    setBuilderOpen(false);
+    setDroppedFile(null);
   };
 
   const handleEdited = (preset: PresetSummary) => {
@@ -111,10 +119,7 @@ export default function PresetLibrary() {
     await updatePreset(preset.id, { pinned });
   };
 
-  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
+  const processImportFile = useCallback(async (file: File) => {
     setImporting(true);
     setImportError("");
     try {
@@ -125,7 +130,70 @@ export default function PresetLibrary() {
     } finally {
       setImporting(false);
     }
+  }, []);
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    await processImportFile(file);
   };
+
+  const modalOpen = builderOpen || !!editingPreset || !!sendingPreset;
+
+  const handleDroppedFile = useCallback(
+    (file: File) => {
+      const isZip = file.name.toLowerCase().endsWith(".zip") || file.type === "application/zip" || file.type === "application/x-zip-compressed";
+      if (isZip) {
+        void processImportFile(file);
+        return;
+      }
+      setDroppedFile(file);
+      setBuilderOpen(true);
+    },
+    [processImportFile],
+  );
+
+  useEffect(() => {
+    let dragCounter = 0;
+    const isFileDrag = (e: DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes("Files");
+
+    const onDragEnter = (e: DragEvent) => {
+      if (!isFileDrag(e) || modalOpen) return;
+      e.preventDefault();
+      dragCounter += 1;
+      setDraggingFile(true);
+    };
+    const onDragOver = (e: DragEvent) => {
+      if (!isFileDrag(e)) return;
+      e.preventDefault();
+    };
+    const onDragLeave = (e: DragEvent) => {
+      if (!isFileDrag(e)) return;
+      dragCounter = Math.max(0, dragCounter - 1);
+      if (dragCounter === 0) setDraggingFile(false);
+    };
+    const onDrop = (e: DragEvent) => {
+      if (!isFileDrag(e)) return;
+      e.preventDefault();
+      dragCounter = 0;
+      setDraggingFile(false);
+      if (modalOpen) return;
+      const file = e.dataTransfer?.files?.[0];
+      if (file) handleDroppedFile(file);
+    };
+
+    window.addEventListener("dragenter", onDragEnter);
+    window.addEventListener("dragover", onDragOver);
+    window.addEventListener("dragleave", onDragLeave);
+    window.addEventListener("drop", onDrop);
+    return () => {
+      window.removeEventListener("dragenter", onDragEnter);
+      window.removeEventListener("dragover", onDragOver);
+      window.removeEventListener("dragleave", onDragLeave);
+      window.removeEventListener("drop", onDrop);
+    };
+  }, [modalOpen, handleDroppedFile]);
 
   const total = pinned.length + rest.length;
 
@@ -143,7 +211,8 @@ export default function PresetLibrary() {
               )}
             </div>
             <p className="text-sm text-muted">
-              Save a design once, grab a fresh <code className="text-foreground-secondary">config.zip</code> any time.
+              Save a design once, push it straight to a lectern, or grab a{" "}
+              <code className="text-foreground-secondary">config.zip</code> any time.
             </p>
           </div>
 
@@ -238,7 +307,16 @@ export default function PresetLibrary() {
         </div>
       )}
 
-      {builderOpen && <MediaBuilder onClose={() => setBuilderOpen(false)} onSaved={handleSaved} />}
+      {builderOpen && (
+        <MediaBuilder initialFile={droppedFile ?? undefined} onClose={handleCloseBuilder} onSaved={handleSaved} />
+      )}
+      {draggingFile && (
+        <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center border-4 border-dashed border-accent bg-accent/10 backdrop-blur-sm">
+          <p className="rounded-full bg-surface px-6 py-3 font-display text-base text-foreground shadow-[0_24px_60px_-16px_rgba(0,0,0,0.6)]">
+            Drop image, video, or config.zip to start a new design
+          </p>
+        </div>
+      )}
       {editingPreset && (
         <EditPresetModal preset={editingPreset} onClose={() => setEditingPreset(null)} onSaved={handleEdited} />
       )}
