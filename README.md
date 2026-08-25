@@ -147,6 +147,34 @@ Environment variables, all optional:
 No `.env` file is required to run the app — both have sane defaults for a
 single-machine venue deployment.
 
+## Lectern emulator
+
+`npm run emulator` runs a standalone software stand-in for a real Opal Plus
+display — useful for exercising the health check and "Push to lectern" flow
+without physical hardware. It's a separate process from the app
+([`emulator/server.ts`](emulator/server.ts)), not part of the Next.js build.
+
+- Speaks the real OTA protocol above: TCP `16179` by default, handshake
+  through to a full push, byte-for-byte.
+- A small web UI (`http://localhost:8787` by default) renders the last
+  design it received the way the physical screen would show it, and lists
+  every connection (health check or push) as it happens.
+- **Simulate** dropdown forces the next connection into a specific failure
+  mode — refused connection, a hung handshake, a bad ACK byte, a dropped
+  transfer, etc. — to exercise the app's timeout and error-handling paths
+  without waiting for a real device to misbehave.
+
+To use it: run `npm run emulator` in one terminal (alongside `npm run dev`
+in another), then register a lectern in the app pointing at the machine
+it's running on — `127.0.0.1` if it's the same machine, otherwise that
+machine's LAN IP. Health checks and pushes both work exactly as they would
+against a real screen.
+
+Env vars, all optional: `EMULATOR_PORT` (OTA TCP port, default `16179`,
+matches the real device — only change this if you're also changing what
+port the app pushes to), `EMULATOR_UI_PORT` (default `8787`), `EMULATOR_HOST`
+(bind address, default `0.0.0.0`).
+
 ## How the format was reverse-engineered
 
 Two sample `config.zip` exports from the vendor's own software (one image
