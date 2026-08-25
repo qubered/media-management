@@ -243,17 +243,20 @@ Like the OTA push itself, it's unauthenticated and local-network-only.
   ```
   `<preset>` and `<lectern>` match by name or id, case-insensitive — so a
   Companion button can just use the same names shown in the app.
-- **Feedback** (this app → every registered target): add Companion's own IP
-  and its "Listen for OSC" port under **OSC control** in Settings, then
-  every send — whether triggered from OSC or the web UI — broadcasts:
+- **Feedback**: add Companion's own IP and its "Listen for OSC" port under
+  **OSC control** in Settings, then sends broadcast:
   ```
   /lectern/feedback/send <lectern> <preset> <status> <message>
     status: sending | sent | failed
   /lectern/feedback/error <address> <detail>   unresolved preset/lectern name
   ```
-  Use these to drive Companion button color/text feedback. Feedback targets
-  are stored the same way lecterns are (`osc_targets` table), managed from
-  the same Settings modal.
+  A send triggered by an OSC `/lectern/send` command only notifies the
+  registered target(s) whose IP matches whoever sent that command — other
+  registered targets stay silent for a command they didn't issue. A send
+  triggered from the web UI has no equivalent "sender" to scope to, so it
+  broadcasts to every registered target. Use these to drive Companion button
+  color/text feedback. Feedback targets are stored the same way lecterns are
+  (`osc_targets` table), managed from the same Settings modal.
 - **Log:** Settings → **Log** shows every incoming OSC message — valid or
   not — with its source, arguments, and outcome, polling every 2s. Backed by
   SQLite rather than an in-memory array (see the note in `oscLog.ts` — the
