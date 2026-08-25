@@ -13,6 +13,8 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "public/**",
+    // Separate package with its own tooling, see companion-module/README.md
+    "companion-module/**",
   ]),
 ]);
 

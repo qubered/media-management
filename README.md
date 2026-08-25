@@ -322,3 +322,14 @@ Like the OTA push itself, it's unauthenticated and local-network-only.
 - **IDs:** if you'd rather point Companion at something that survives a
   rename, every preset's paper-airplane menu and each lectern row in
   Settings has a "Copy ID" action.
+
+## Companion module
+
+[`companion-module/`](companion-module/README.md) is a full Bitfocus
+Companion module (`@companion-module/base`) as an alternative to driving
+this app over raw OSC above. Instead of typing a preset/lectern/schedule
+name into a text field, it talks to this app's REST API and lists your
+actual presets, lecterns, and schedules in dropdowns — pulled live from
+the server and kept in sync as they change. It's a separate package with
+its own `package.json`/build, excluded from this app's own
+typecheck/lint/build; see its README for setup and development.

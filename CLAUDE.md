@@ -39,6 +39,13 @@ protocols, and [DESIGN.md](DESIGN.md) for the visual design system.
   `EmptyState`) are shared primitives — see DESIGN.md "Component patterns"
   before adding a new icon or modal; there's almost certainly already a
   place for it.
+- `companion-module/` — a standalone Bitfocus Companion module
+  (`@companion-module/base`), its own package with its own build/lint,
+  intentionally excluded from this app's `tsconfig.json`/
+  `eslint.config.mjs`/`npm run typecheck`/`lint`/`build`. Talks to this
+  app's REST API (never OSC) so its dropdowns can list real presets/
+  lecterns/schedules instead of taking a typed-in id. See its own README
+  before changing it.
 
 ### Data model
 
