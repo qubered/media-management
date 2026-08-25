@@ -62,7 +62,7 @@ export function startOscServer(): void {
       const preset = resolvePreset(presetArg);
       if (!preset) {
         const detail = `unknown preset: "${presetArg}"`;
-        broadcastOscFeedback("/lectern/feedback/error", [address, detail]);
+        broadcastOscFeedback("/lectern/feedback/error", [address, detail], rinfo.address);
         pushOscLog({ from, address, args: argStrings, ok: false, detail });
         return;
       }
@@ -70,19 +70,19 @@ export function startOscServer(): void {
       const deviceIds = resolveDeviceIds(deviceArg);
       if (deviceIds.length === 0) {
         const detail = `unknown lectern: "${deviceArg || "(none registered)"}"`;
-        broadcastOscFeedback("/lectern/feedback/error", [address, detail]);
+        broadcastOscFeedback("/lectern/feedback/error", [address, detail], rinfo.address);
         pushOscLog({ from, address, args: argStrings, ok: false, detail });
         return;
       }
 
       const detail = `pushing "${preset.name}" to ${deviceIds.length} lectern${deviceIds.length === 1 ? "" : "s"}`;
       pushOscLog({ from, address, args: argStrings, ok: true, detail });
-      void pushPresetToDevices(preset.id, deviceIds);
+      void pushPresetToDevices(preset.id, deviceIds, rinfo.address);
       return;
     }
 
     const detail = "unrecognized address";
-    broadcastOscFeedback("/lectern/feedback/error", [address, detail]);
+    broadcastOscFeedback("/lectern/feedback/error", [address, detail], rinfo.address);
     pushOscLog({ from, address, args: argStrings, ok: false, detail });
   });
 }

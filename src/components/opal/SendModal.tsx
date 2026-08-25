@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { listDevices, sendPresetToDevices } from "@/lib/opal/apiClient";
 import { LecternDevice, PresetSummary } from "@/lib/opal/types";
 import EmptyState from "./ui/EmptyState";
@@ -19,19 +19,30 @@ export default function SendModal({ preset, onClose }: { preset: PresetSummary; 
       .finally(() => setLoading(false));
   }, []);
 
-  const handleSend = async (device: LecternDevice) => {
-    setStatuses((s) => ({ ...s, [device.id]: "sending" }));
-    try {
-      const [result] = await sendPresetToDevices(preset.id, [device.id]);
-      setStatuses((s) => ({ ...s, [device.id]: result.ok ? "sent" : "failed" }));
-    } catch {
-      setStatuses((s) => ({ ...s, [device.id]: "failed" }));
-    }
-  };
+  const handleSend = useCallback(
+    async (device: LecternDevice) => {
+      setStatuses((s) => ({ ...s, [device.id]: "sending" }));
+      try {
+        const [result] = await sendPresetToDevices(preset.id, [device.id]);
+        setStatuses((s) => ({ ...s, [device.id]: result.ok ? "sent" : "failed" }));
+      } catch {
+        setStatuses((s) => ({ ...s, [device.id]: "failed" }));
+      }
+    },
+    [preset.id],
+  );
 
   const handleSendAll = () => {
     devices.forEach((device) => handleSend(device));
   };
+
+  // Only one lectern on this venue's network — skip the picker and send straight to it.
+  // Deferred a tick so handleSend's setState doesn't run synchronously within the effect.
+  useEffect(() => {
+    if (!loading && devices.length === 1) {
+      queueMicrotask(() => handleSend(devices[0]));
+    }
+  }, [loading, devices, handleSend]);
 
   return (
     <Modal onClose={onClose} title={`Send "${preset.name}"`}>

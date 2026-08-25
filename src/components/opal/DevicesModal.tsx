@@ -130,7 +130,7 @@ function LecternsTab() {
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Name (e.g. Foyer lectern)"
+            placeholder="Name (e.g. Hall lectern)"
             className="min-w-0 flex-1 rounded-full border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
           />
           <input
@@ -213,7 +213,9 @@ function OscTab() {
         <code className="block text-muted">/lectern/send &lt;preset&gt; &lt;lectern&gt;</code>
         <code className="block text-muted">/lectern/send &lt;preset&gt; — sends to every lectern</code>
         <code className="block text-muted">/lectern/ping — replies with /lectern/pong</code>
-        <p className="mb-1.5 mt-3 font-semibold text-foreground">Feedback broadcast to every target below</p>
+        <p className="mb-1.5 mt-3 font-semibold text-foreground">
+          Feedback from an OSC command goes only to the target matching the sender&apos;s IP
+        </p>
         <code className="block text-muted">/lectern/feedback/send &lt;lectern&gt; &lt;preset&gt; &lt;status&gt; &lt;message&gt;</code>
         <code className="block text-muted">/lectern/feedback/error &lt;address&gt; &lt;detail&gt;</code>
         <p className="mt-1.5 text-muted">preset/lectern arguments match by name or id, case-insensitive.</p>
