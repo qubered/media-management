@@ -161,56 +161,110 @@ export default function SchedulePage() {
           <span className="text-sm font-medium">No schedules yet — create one</span>
         </button>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border-hairline">
-          <div className="grid grid-cols-[1.6fr_1.7fr_1.4fr_1.6fr_46px_100px] gap-2 border-b border-border-hairline bg-surface px-4 py-2 text-xs text-muted">
-            <span>Name</span>
-            <span>Recurrence</span>
-            <span>Next run</span>
-            <span>Status</span>
-            <span>On</span>
-            <span></span>
-          </div>
-          <ul>
+        <>
+          {/* Below `md` the fixed-column table can't reasonably reflow, so it's a card list instead;
+              at `md` and up the original table is unchanged. */}
+          <div className="flex flex-col gap-3 md:hidden">
             {schedules.map((schedule) => (
-              <li
-                key={schedule.id}
-                className="grid grid-cols-[1.6fr_1.7fr_1.4fr_1.6fr_46px_100px] items-center gap-2 border-b border-border-hairline bg-background px-4 py-3 text-sm last:border-b-0"
-              >
-                <span className="flex min-w-0 items-center gap-2">
-                  <ScheduleKindDot schedule={schedule} />
-                  <span className={`truncate font-medium ${schedule.enabled ? "" : "text-muted"}`}>{schedule.name}</span>
-                </span>
-                <span className="truncate text-foreground-secondary">{recurrenceSummary(schedule)}</span>
-                <span className="truncate text-foreground-secondary">
-                  {schedule.enabled ? new Date(schedule.nextRunAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "—"}
-                </span>
-                <StatusChip deliveries={deliveries[schedule.id] ?? []} />
-                <input
-                  type="checkbox"
-                  checked={schedule.enabled}
-                  onChange={() => handleToggleEnabled(schedule)}
-                  className="accent-accent"
-                  aria-label={schedule.enabled ? "Disable schedule" : "Enable schedule"}
-                />
-                <div className="flex justify-end gap-0.5">
-                  <IconButton
-                    title="Run now"
-                    onClick={() => handleTrigger(schedule)}
-                    hoverClass={triggering.has(schedule.id) ? "" : "hover:text-accent"}
-                  >
-                    <SendIcon />
-                  </IconButton>
-                  <IconButton title="Edit" onClick={() => setEditingSchedule(schedule)}>
-                    <PencilIcon />
-                  </IconButton>
-                  <IconButton title="Delete" hoverClass="hover:text-danger" onClick={() => handleDelete(schedule)}>
-                    <TrashIcon />
-                  </IconButton>
+              <div key={schedule.id} className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <ScheduleKindDot schedule={schedule} />
+                    <span className={`truncate font-display text-[15px] ${schedule.enabled ? "text-foreground" : "text-muted"}`}>
+                      {schedule.name}
+                    </span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={schedule.enabled}
+                    onChange={() => handleToggleEnabled(schedule)}
+                    className="h-5 w-5 shrink-0 accent-accent"
+                    aria-label={schedule.enabled ? "Disable schedule" : "Enable schedule"}
+                  />
                 </div>
-              </li>
+
+                <div className="flex flex-col gap-0.5 text-xs text-foreground-secondary">
+                  <span className="truncate">{recurrenceSummary(schedule)}</span>
+                  <span className="truncate">
+                    {schedule.enabled
+                      ? `Next: ${new Date(schedule.nextRunAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`
+                      : "Disabled"}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-2">
+                  <StatusChip deliveries={deliveries[schedule.id] ?? []} />
+                  <div className="flex gap-0.5">
+                    <IconButton
+                      title="Run now"
+                      onClick={() => handleTrigger(schedule)}
+                      hoverClass={triggering.has(schedule.id) ? "" : "hover:text-accent"}
+                    >
+                      <SendIcon />
+                    </IconButton>
+                    <IconButton title="Edit" onClick={() => setEditingSchedule(schedule)}>
+                      <PencilIcon />
+                    </IconButton>
+                    <IconButton title="Delete" hoverClass="hover:text-danger" onClick={() => handleDelete(schedule)}>
+                      <TrashIcon />
+                    </IconButton>
+                  </div>
+                </div>
+              </div>
             ))}
-          </ul>
-        </div>
+          </div>
+
+          <div className="hidden overflow-hidden rounded-2xl border border-border-hairline md:block">
+            <div className="grid grid-cols-[1.6fr_1.7fr_1.4fr_1.6fr_46px_100px] gap-2 border-b border-border-hairline bg-surface px-4 py-2 text-xs text-muted">
+              <span>Name</span>
+              <span>Recurrence</span>
+              <span>Next run</span>
+              <span>Status</span>
+              <span>On</span>
+              <span></span>
+            </div>
+            <ul>
+              {schedules.map((schedule) => (
+                <li
+                  key={schedule.id}
+                  className="grid grid-cols-[1.6fr_1.7fr_1.4fr_1.6fr_46px_100px] items-center gap-2 border-b border-border-hairline bg-background px-4 py-3 text-sm last:border-b-0"
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <ScheduleKindDot schedule={schedule} />
+                    <span className={`truncate font-medium ${schedule.enabled ? "" : "text-muted"}`}>{schedule.name}</span>
+                  </span>
+                  <span className="truncate text-foreground-secondary">{recurrenceSummary(schedule)}</span>
+                  <span className="truncate text-foreground-secondary">
+                    {schedule.enabled ? new Date(schedule.nextRunAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "—"}
+                  </span>
+                  <StatusChip deliveries={deliveries[schedule.id] ?? []} />
+                  <input
+                    type="checkbox"
+                    checked={schedule.enabled}
+                    onChange={() => handleToggleEnabled(schedule)}
+                    className="accent-accent"
+                    aria-label={schedule.enabled ? "Disable schedule" : "Enable schedule"}
+                  />
+                  <div className="flex justify-end gap-0.5">
+                    <IconButton
+                      title="Run now"
+                      onClick={() => handleTrigger(schedule)}
+                      hoverClass={triggering.has(schedule.id) ? "" : "hover:text-accent"}
+                    >
+                      <SendIcon />
+                    </IconButton>
+                    <IconButton title="Edit" onClick={() => setEditingSchedule(schedule)}>
+                      <PencilIcon />
+                    </IconButton>
+                    <IconButton title="Delete" hoverClass="hover:text-danger" onClick={() => handleDelete(schedule)}>
+                      <TrashIcon />
+                    </IconButton>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
       )}
 
       {formOpen && <ScheduleFormModal onClose={() => setFormOpen(false)} onSaved={handleSaved} />}

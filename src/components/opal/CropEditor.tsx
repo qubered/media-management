@@ -5,8 +5,6 @@ import { CropRect, MediaKind } from "@/lib/opal/types";
 
 const TARGET_ASPECT = 9 / 16;
 const MAX_ZOOM = 4;
-const VIEWPORT_WIDTH = 260;
-const VIEWPORT_HEIGHT = Math.round(VIEWPORT_WIDTH / TARGET_ASPECT);
 const DEFAULT_BACKGROUND = "#000000";
 
 interface NaturalSize {
@@ -61,6 +59,23 @@ export default function CropEditor({
     null,
   );
   const seededRef = useRef(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [viewportWidth, setViewportWidth] = useState(260);
+  const viewportHeight = Math.round(viewportWidth / TARGET_ASPECT);
+
+  // Sizes the crop box to fill however much width its own wrapper actually has (bounded by the
+  // wrapper's max-w class) rather than a fixed 260px — bigger, edge-to-edge on a phone, unchanged
+  // shape of the math below since everything derives from this instead of a constant.
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (width) setViewportWidth(Math.round(width));
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const handleMediaLoaded = (size: NaturalSize) => {
     setNatural(size);
@@ -113,7 +128,7 @@ export default function CropEditor({
   const handlePointerMove = (e: React.PointerEvent) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== e.pointerId || !natural || !cropFrac) return;
-    const displayScale = VIEWPORT_WIDTH / (cropFrac.width * natural.width);
+    const displayScale = viewportWidth / (cropFrac.width * natural.width);
     const dxFrac = -(e.clientX - drag.startX) / (natural.width * displayScale);
     const dyFrac = -(e.clientY - drag.startY) / (natural.height * displayScale);
     setCenter(clampCenter({ x: drag.startCenter.x + dxFrac, y: drag.startCenter.y + dyFrac }, cropFrac));
@@ -138,47 +153,49 @@ export default function CropEditor({
 
   const mediaStyle = (): React.CSSProperties => {
     if (!natural || !cropFrac) return { display: "none" };
-    const displayScale = VIEWPORT_WIDTH / (cropFrac.width * natural.width);
+    const displayScale = viewportWidth / (cropFrac.width * natural.width);
     return {
       position: "absolute",
       width: natural.width * displayScale,
       height: natural.height * displayScale,
-      left: VIEWPORT_WIDTH / 2 - center.x * natural.width * displayScale,
-      top: VIEWPORT_HEIGHT / 2 - center.y * natural.height * displayScale,
+      left: viewportWidth / 2 - center.x * natural.width * displayScale,
+      top: viewportHeight / 2 - center.y * natural.height * displayScale,
       maxWidth: "none",
     };
   };
 
   return (
     <div className="flex flex-col gap-4">
-      <div
-        className="relative mx-auto touch-none select-none overflow-hidden rounded-lg border border-border"
-        style={{ width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT, backgroundColor }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-      >
-        {objectUrl &&
-          (kind === "image" ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={objectUrl}
-              alt="Crop preview"
-              draggable={false}
-              style={mediaStyle()}
-              onLoad={(e) => handleMediaLoaded({ width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight })}
-            />
-          ) : (
-            <video
-              src={objectUrl}
-              muted
-              loop
-              autoPlay
-              playsInline
-              style={mediaStyle()}
-              onLoadedMetadata={(e) => handleMediaLoaded({ width: e.currentTarget.videoWidth, height: e.currentTarget.videoHeight })}
-            />
-          ))}
+      <div ref={wrapperRef} className="mx-auto w-full max-w-[320px]">
+        <div
+          className="relative mx-auto touch-none select-none overflow-hidden rounded-lg border border-border"
+          style={{ width: viewportWidth, height: viewportHeight, backgroundColor }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+        >
+          {objectUrl &&
+            (kind === "image" ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={objectUrl}
+                alt="Crop preview"
+                draggable={false}
+                style={mediaStyle()}
+                onLoad={(e) => handleMediaLoaded({ width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight })}
+              />
+            ) : (
+              <video
+                src={objectUrl}
+                muted
+                loop
+                autoPlay
+                playsInline
+                style={mediaStyle()}
+                onLoadedMetadata={(e) => handleMediaLoaded({ width: e.currentTarget.videoWidth, height: e.currentTarget.videoHeight })}
+              />
+            ))}
+        </div>
       </div>
 
       <div className="flex items-center gap-3">

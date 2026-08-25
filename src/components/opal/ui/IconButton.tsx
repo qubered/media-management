@@ -17,7 +17,7 @@ export default function IconButton({
       onClick={onClick}
       title={title}
       aria-label={title}
-      className={`flex h-7 w-7 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-hover active:scale-90 ${hoverClass}`}
+      className={`flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-hover active:scale-90 md:h-7 md:w-7 ${hoverClass}`}
     >
       {children}
     </button>

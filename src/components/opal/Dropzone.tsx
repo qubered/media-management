@@ -23,8 +23,14 @@ export default function Dropzone({ onFile }: { onFile: (file: File) => void }) {
         dragging ? "border-accent bg-accent/10" : "border-border hover:border-muted"
       }`}
     >
-      <span className="text-base font-medium">Drop a photo or video here</span>
-      <span className="text-xs text-muted">or click to choose — auto-converted to {CANVAS_WIDTH}x{CANVAS_HEIGHT}</span>
+      <span className="text-base font-medium">
+        <span className="md:hidden">Select a photo or video</span>
+        <span className="hidden md:inline">Drop a photo or video here</span>
+      </span>
+      <span className="text-xs text-muted">
+        <span className="md:hidden">Tap to choose</span>
+        <span className="hidden md:inline">or click to choose</span> — auto-converted to {CANVAS_WIDTH}x{CANVAS_HEIGHT}
+      </span>
       <input
         type="file"
         accept="image/*,video/*"

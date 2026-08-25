@@ -36,7 +36,7 @@ export default function SendMenu({ preset, onSend }: { preset: PresetSummary; on
         onClick={() => setOpen((o) => !o)}
         title="Send"
         aria-label="Send"
-        className={`flex h-7 w-7 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-accent active:scale-90 ${
+        className={`flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-accent active:scale-90 md:h-7 md:w-7 ${
           open ? "bg-surface-hover text-accent" : ""
         }`}
       >
@@ -44,33 +44,39 @@ export default function SendMenu({ preset, onSend }: { preset: PresetSummary; on
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-20 min-w-44 overflow-hidden rounded-xl border border-border bg-surface py-1 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.6)]">
-          <a
-            href={downloadUrl(preset.id)}
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2 whitespace-nowrap px-3 py-2 text-left text-sm text-foreground hover:bg-surface-hover"
-          >
-            <DownloadIcon />
-            Download .zip
-          </a>
-          <button
-            onClick={() => {
-              setOpen(false);
-              onSend(preset);
-            }}
-            className="flex w-full items-center gap-2 whitespace-nowrap px-3 py-2 text-left text-sm text-foreground hover:bg-surface-hover"
-          >
-            <SendIcon />
-            Push to lectern
-          </button>
-          <button
-            onClick={handleCopyId}
-            className="flex w-full items-center gap-2 whitespace-nowrap px-3 py-2 text-left text-sm text-foreground hover:bg-surface-hover"
-          >
-            <CopyIcon />
-            {copied ? "Copied!" : "Copy ID (for Companion)"}
-          </button>
-        </div>
+        <>
+          {/* Below `md` this is a bottom sheet with its own backdrop; at `md` and up it reverts to the
+              original absolute dropdown anchored under the trigger — see DESIGN.md "Component patterns". */}
+          <div className="fixed inset-0 z-20 bg-black/50 md:hidden" onClick={() => setOpen(false)} />
+          <div className="fixed inset-x-0 bottom-0 z-20 overflow-hidden rounded-t-2xl border border-border bg-surface pb-[calc(0.25rem+env(safe-area-inset-bottom))] shadow-[0_12px_32px_-8px_rgba(0,0,0,0.6)] md:absolute md:inset-x-auto md:bottom-auto md:right-0 md:top-[calc(100%+6px)] md:min-w-44 md:rounded-xl md:py-1 md:pb-1">
+            <div className="mx-auto mb-1 mt-2 h-1 w-9 rounded-full bg-border md:hidden" />
+            <a
+              href={downloadUrl(preset.id)}
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 whitespace-nowrap px-4 py-3 text-left text-sm text-foreground hover:bg-surface-hover md:px-3 md:py-2"
+            >
+              <DownloadIcon />
+              Download .zip
+            </a>
+            <button
+              onClick={() => {
+                setOpen(false);
+                onSend(preset);
+              }}
+              className="flex w-full items-center gap-2 whitespace-nowrap px-4 py-3 text-left text-sm text-foreground hover:bg-surface-hover md:px-3 md:py-2"
+            >
+              <SendIcon />
+              Push to lectern
+            </button>
+            <button
+              onClick={handleCopyId}
+              className="flex w-full items-center gap-2 whitespace-nowrap px-4 py-3 text-left text-sm text-foreground hover:bg-surface-hover md:px-3 md:py-2"
+            >
+              <CopyIcon />
+              {copied ? "Copied!" : "Copy ID (for Companion)"}
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
