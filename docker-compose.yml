@@ -1,0 +1,12 @@
+services:
+  lectern-library:
+    build: .
+    ports:
+      - "3000:3000"
+      - "9000:9000/udp"
+    volumes:
+      - lectern-data:/data
+    restart: unless-stopped
+
+volumes:
+  lectern-data:
