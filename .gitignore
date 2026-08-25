@@ -42,3 +42,7 @@ next-env.d.ts
 
 # app data (media store + sqlite db)
 /data
+
+# companion module — separate package, its own build output/deps
+/companion-module/node_modules
+/companion-module/dist
