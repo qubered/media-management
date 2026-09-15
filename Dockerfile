@@ -27,6 +27,13 @@ ENV OSC_PORT=9000
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
+# iputils-ping: the bookworm-slim base has no ping binary at all, so
+# pingHost() (src/lib/server/ping.ts) always failed with ENOENT inside the
+# container and reported every lectern as offline regardless of real
+# reachability.
+RUN apt-get update && apt-get install -y --no-install-recommends iputils-ping \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN mkdir -p /data && chown node:node /data
 
 COPY --from=builder /app/public ./public
